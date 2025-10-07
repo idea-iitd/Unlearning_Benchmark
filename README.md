@@ -169,6 +169,7 @@ Supported graph datasets:
 - **ogbn-arxiv**
 - **Amazon-ratings**
 - **Roman-empire**
+- **Reddit**
 
 ---
 
@@ -188,5 +189,6 @@ Our benchmark currently supports:
 ## 📬 Contact
 
 For questions, issues, or contributions, please open a GitHub issue or contact the authors.
+
 
 
