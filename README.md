@@ -1,4 +1,4 @@
-# 📘 IS GRAPH UNLEARNING READY FOR PRACTICE?  
+# IS GRAPH UNLEARNING READY FOR PRACTICE?  
 ### A Benchmark on Efficiency, Utility, and Forgetting
 
 This repository contains the **official implementation** of the paper:  
@@ -8,7 +8,7 @@ We introduce a unified benchmark framework to evaluate multiple **graph unlearni
 
 ---
 
-## 📚 Overview
+## Overview
 
 This benchmark provides:
 - A **standardized evaluation** of graph unlearning methods.  
@@ -17,9 +17,9 @@ This benchmark provides:
 
 ---
 
-## 📥 Installation
+## Installation
 
-### 🧩 Prerequisites
+### Prerequisites
 - **Python:** 3.8.0  
 - **CUDA:** Ensure the CUDA version is compatible with your PyTorch installation.
 
@@ -49,7 +49,7 @@ Example for **CUDA 12.1**:
 pip install torch==2.2.1 torchvision==0.17.1 torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
 
-✅ Required Versions:
+Required Versions:
 - `torch==2.2.1`  
 - `torchvision==0.17.1`
 
@@ -89,9 +89,9 @@ For other CUDA versions, replace `cu121` with your version (e.g., `cu118`).
 
 ---
 
-## 🚀 Running Benchmarks
+## Running Benchmarks
 
-### 🔹 Unlearning a Model
+### Unlearning a Model
 
 To unlearn a model, run the unlearn_model.sh file or use the following command:
 
@@ -103,7 +103,7 @@ This command will **train**, **unlearn**, and **save** the unlearned model.
 
 ---
 
-### ⚙️ Optional Arguments
+### Optional Arguments
 
 | Argument | Description | Example |
 |-----------|--------------|----------|
@@ -119,7 +119,7 @@ This command will **train**, **unlearn**, and **save** the unlearned model.
 
 ---
 
-## 📊 Forgetting and Efficiency Evaluation
+## Forgetting and Efficiency Evaluation
 
 To evaluate **forgetting performance** using Membership Inference (MI) Attack:
 ```bash
@@ -138,7 +138,7 @@ efficiency_stats.txt
 
 ---
 
-## 🎯 Utility Evaluation
+## Utility Evaluation
 
 After Getting the Utility Stats, run:
 ```bash
@@ -150,7 +150,7 @@ This computes:
 - **Fidelity**
 - **Logit Similarity**
 
-📝 Note:
+Note:
 - Utility results for **GraphEraser** and **GUIDE** are automatically stored during unlearning:
   - `GraphEraser_utility_stats.txt`
   - `GUIDE_utility_stats.txt`
@@ -161,7 +161,7 @@ python GULib-master/Weight_comparison.py
 ```
 ---
 
-## 📦 Datasets
+## Datasets
 
 Supported graph datasets:
 - **Cora**
@@ -173,7 +173,7 @@ Supported graph datasets:
 
 ---
 
-## 🧠 Supported Unlearning Methods
+## Supported Unlearning Methods
 
 Our benchmark currently supports:
 - **MEGU**
@@ -186,9 +186,10 @@ Our benchmark currently supports:
 
 ---
 
-## 📬 Contact
+## Contact
 
 For questions, issues, or contributions, please open a GitHub issue or contact the authors.
+
 
 
 
