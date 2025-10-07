@@ -1,0 +1,1 @@
+from .gnndelete import *

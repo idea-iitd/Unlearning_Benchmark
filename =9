@@ -1,0 +1,45 @@
+Channels:
+ - conda-forge
+ - defaults
+Platform: linux-64
+Collecting package metadata (repodata.json): ...working... done
+Solving environment: ...working... done
+
+## Package Plan ##
+
+  environment location: /DATATWO/users/gcond/soft/minconda3/envs/scalegun
+
+  added / updated specs:
+    - gcc
+
+
+The following packages will be downloaded:
+
+    package                    |            build
+    ---------------------------|-----------------
+    binutils_impl_linux-64-2.43|       h4bf12b8_4         5.8 MB  conda-forge
+    gcc-14.2.0                 |       h96c4ede_2          54 KB  conda-forge
+    gcc_impl_linux-64-14.2.0   |       hdb7739f_2        70.1 MB  conda-forge
+    kernel-headers_linux-64-3.10.0|      he073ed8_18         921 KB  conda-forge
+    libgcc-devel_linux-64-14.2.0|     h9c4974d_102         2.6 MB  conda-forge
+    libsanitizer-14.2.0        |       hed042b8_2         4.3 MB  conda-forge
+    sysroot_linux-64-2.17      |      h0157908_18        14.5 MB  conda-forge
+    ------------------------------------------------------------
+                                           Total:        98.3 MB
+
+The following NEW packages will be INSTALLED:
+
+  binutils_impl_lin~ conda-forge/linux-64::binutils_impl_linux-64-2.43-h4bf12b8_4 
+  gcc                conda-forge/linux-64::gcc-14.2.0-h96c4ede_2 
+  gcc_impl_linux-64  conda-forge/linux-64::gcc_impl_linux-64-14.2.0-hdb7739f_2 
+  kernel-headers_li~ conda-forge/noarch::kernel-headers_linux-64-3.10.0-he073ed8_18 
+  libgcc-devel_linu~ conda-forge/noarch::libgcc-devel_linux-64-14.2.0-h9c4974d_102 
+  libsanitizer       conda-forge/linux-64::libsanitizer-14.2.0-hed042b8_2 
+  libstdcxx          conda-forge/linux-64::libstdcxx-14.2.0-h8f9b012_2 
+  sysroot_linux-64   conda-forge/noarch::sysroot_linux-64-2.17-h0157908_18 
+  tzdata             conda-forge/noarch::tzdata-2025b-h78e105d_0 
+
+
+Proceed ([y]/n)? Invalid choice: conda update -n base -c conda-forge conda
+Proceed ([y]/n)? Invalid choice: conda install -c conda-forge gcc=9
+Proceed ([y]/n)? 
