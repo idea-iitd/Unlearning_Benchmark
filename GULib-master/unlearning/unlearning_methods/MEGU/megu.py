@@ -97,10 +97,10 @@ class megu(Learning_based_pipeline):
         can be 'node', 'edge', or 'feature', and the function updates the graph 
         data accordingly.
         """
-        # self.data.x_unlearn = self.data.x.clone()
-        # self.data.edge_index_unlearn = self.data.edge_index.clone()
-        # edge_index = self.data.edge_index.cpu().numpy()
-        # unique_indices = np.where(edge_index[0] < edge_index[1])[0]
+        self.data.x_unlearn = self.data.x.clone()
+        self.data.edge_index_unlearn = self.data.edge_index.clone()
+        edge_index = self.data.edge_index.cpu().numpy()
+        unique_indices = np.where(edge_index[0] < edge_index[1])[0]
 
         if self.args["unlearn_task"] == 'node':
             path_un = unlearning_path + "_" + str(self.run) + "_nodes_" + str(self.args["num_unlearned_nodes"])+ ".txt"
@@ -116,18 +116,23 @@ class megu(Learning_based_pipeline):
             # breakpoint()
             # self.data.edge_index = self.data.train_edge_index  #commented because we need all edge not just training
             self.data.edge_index_unlearn = self.update_edge_index_unlearn(unique_nodes, remove_edges)
+            # breakpoint()
 
             
         if self.args["unlearn_task"] == 'feature':
-            unique_nodes = np.random.choice(len(self.train_indices),
-                                            int(len(self.train_indices) * self.args['unlearn_ratio']),
-                                            replace=False)
+            # unique_nodes = np.random.choice(len(self.train_indices),
+            #                                 int(len(self.train_indices) * self.args['unlearn_ratio']),
+            #                                 replace=False)
+            path_un = unlearning_path + "_" + str(self.run) + "_nodes_" + str(self.args["num_unlearned_nodes"])+ ".txt"
+            unique_nodes = np.loadtxt(path_un, dtype=int)
+            self.unlearing_nodes = unique_nodes
             self.data.x_unlearn[unique_nodes] = 0.
 
         self.temp_node = unique_nodes
-        # self.target_model.data = self.data
+        self.target_model.data = self.data
         # Create a copy of data with unlearned nodes/edges removed
         self.gold_data = self._create_gold_standard_data()
+
 
     def unlearn(self):
         """
@@ -138,8 +143,8 @@ class megu(Learning_based_pipeline):
         3. Calls the target model's `megu_unlearning` method to unlearn the specified nodes and records the average unlearning time and F1 score.
         4. Performs a membership inference attack (MIA) and records the average AUC score.
         """
-        # self.adj = sparse_mx_to_torch_sparse_tensor(normalize_adj(to_scipy_sparse_matrix(self.data.edge_index,num_nodes=self.data.num_nodes))).cuda()
-        # self.neighbor_khop = self.neighbor_select(self.data.x.cuda())
+        self.adj = sparse_mx_to_torch_sparse_tensor(normalize_adj(to_scipy_sparse_matrix(self.data.edge_index,num_nodes=self.data.num_nodes))).cuda()
+        self.neighbor_khop = self.neighbor_select(self.data.x.cuda())
         # self.avg_unlearning_time[self.run], self.average_f1[self.run] = self.target_model.megu_unlearning(self.temp_node,self.neighbor_khop,self.run)
         self.avg_unlearning_time_gold[self.run], self.average_f1_gold[self.run] = self.gold_standard_unlearning()
         if self.args["attack"]:
@@ -404,7 +409,7 @@ class megu(Learning_based_pipeline):
             remove_edges = torch.tensor(remove_edges, dtype=edge_index.dtype, device=device).T
             remove_edges_norm = torch.sort(remove_edges, dim=0).values
 
-            # create a mask using a hash trick (no big boolean tensor)
+            # create a mask using a hash trick
             edge_hash = edge_index_norm[0] * edge_index.shape[1] + edge_index_norm[1]
             remove_hash = remove_edges_norm[0] * edge_index.shape[1] + remove_edges_norm[1]
             mask = ~torch.isin(edge_hash, remove_hash)
@@ -556,6 +561,7 @@ class megu(Learning_based_pipeline):
                 # self.logger.info("posterior:{}".format(posterior))
                 auc = roc_auc_score(mia_test_y, posterior.reshape(-1, 1))
                 self.average_gold_auc[self.run] = auc
+        
         # if self.args["attack"]:
         #     self.mia_num = len(self.data.test_indices)   # use full test set size
         #     self.original_softlabels = F.softmax(self.target_model.model(
@@ -665,5 +671,23 @@ class megu(Learning_based_pipeline):
             
             # Node count stays the same
             gold_data.num_nodes = self.data.num_nodes
+
+        elif self.args["unlearn_task"] == 'feature':
+            # Use the edge index after unlearning
+            gold_data.edge_index = self.data.edge_index_unlearn.clone()
+            
+            # Keep the node faetures of unlearn nodes 
+            gold_data.x = self.data.x_unlearn.clone()
+            gold_data.y = self.data.y.clone()
+            
+            # Masks also remain the same since no nodes are dropped
+            for mask_name in ['train_mask', 'val_mask', 'test_mask']:
+                if hasattr(self.data, mask_name):
+                    setattr(gold_data, mask_name, getattr(self.data, mask_name).clone())
+            
+            # Node count stays the same
+            gold_data.num_nodes = self.data.num_nodes
+
+       
             
         return gold_data

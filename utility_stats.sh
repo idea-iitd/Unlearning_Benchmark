@@ -16,7 +16,7 @@ for method in "${methods[@]}"; do
         for ratio in "${ratios[@]}"; do
             for base in "${base_model[@]}"; do
                 echo "Running for ratio=$ratio, dataset=$dataset, method=$method, base model=$base"
-                python GULib-master/jaccard2.py \
+                python GULib-master/evaluate_unlearning.py \
                     --unlearn_task "node" \
                     --unlearn_ratio "$ratio" \
                     --dataset_name "$dataset" \

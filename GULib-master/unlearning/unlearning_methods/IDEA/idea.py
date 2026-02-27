@@ -266,9 +266,13 @@ class idea(IF_based_pipeline):
             # self.samples_to_be_unlearned = 0.0
 
         if self.args["unlearn_task"] == 'feature':
-            unique_nodes = np.random.choice(len(self.data.train_indices),
-                                            int(len(self.data.train_indices) * self.args['unlearn_ratio']),
-                                            replace=False)
+            # unique_nodes = np.random.choice(len(self.data.train_indices),
+            #                                 int(len(self.data.train_indices) * self.args['unlearn_ratio']),
+            #                                 replace=False)
+            path_un = unlearning_path + "_" + str(self.run) + "_nodes_" + str(self.args["num_unlearned_nodes"])+ ".txt"
+            unique_nodes = np.loadtxt(path_un, dtype=int)
+            self.unlearing_nodes = unique_nodes
+            self.unlearning_edges = None
             self.data.x_unlearn[unique_nodes] = 0.
             self.samples_to_be_unlearned = 0.0
             self.attack_preparations["unlearned_feature_node_idx"] = unique_nodes

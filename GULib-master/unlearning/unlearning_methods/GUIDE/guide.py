@@ -20,7 +20,7 @@ from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 from task.node_classification import NodeClassifier
 from unlearning.unlearning_methods.GUIDE.kernel_vector import PyramidMatchVector
 import shutil
-from config import unlearning_path
+from config import root_path,unlearning_path,unlearning_edge_path
 from tqdm import tqdm
 from config import BLUE_COLOR,RESET_COLOR
 from task.edge_prediction import EdgePredictor
@@ -41,8 +41,19 @@ import argparse
 from unlearning.unlearning_methods.Projector.utils.graph_projector_model_utils import Pro_GNN
 import copy
 from torch_sparse import SparseTensor
+from Trend_attack import TrendAttack
+from Membership_Recall_Attack import MRattack
+from sklearn.metrics import precision_score, recall_score
+from sklearn.model_selection import train_test_split
+import joblib  
 
-filename = "GUIDE_utility_stats.txt"
+# --- place near top of file with other imports ---
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score, accuracy_score
+from collections import defaultdict
+
+filename = "abc.txt"
 
 def append_to_file(filename: str, text: str):
     with open(filename, "a") as f:
@@ -76,7 +87,7 @@ class guide(Shard_based_pipeline):
         u_ratio = self.args['unlearn_ratio']
         dataset = self.args['dataset_name']
         num_nodes = self.data.y.size(0)
-        unlearn_idx_path = f"/data/unlearning_task/transductive/imbalanced/unlearning_nodes_{u_ratio}_{dataset}_0_nodes_{int(u_ratio * num_nodes)}.txt"
+        unlearn_idx_path = f"/data/unlearning_task/transductive/imbalanced/unlearning_nodes_{u_ratio}_{dataset}_{self.run}_nodes_{int(u_ratio * num_nodes)}.txt"
 
         with open(unlearn_idx_path, "r") as f:
             unlearned_indices = list(map(int, f.readlines()))
@@ -370,11 +381,11 @@ class guide(Shard_based_pipeline):
                 #--------------------------------------------------
                 dataset = self.args['dataset_name']
                 unlearn_ratio_str = f"ratio_{self.args['unlearn_ratio']:.2f}"
-                gold_model_path = f"/unlearned_models/GOLD/{dataset}/node/{unlearn_ratio_str}/GOLD_{dataset}_node_{unlearn_ratio_str}.pt"
+                gold_model_path = f"/unlearned_models/GOLD/{dataset}/{self.args['unlearn_task']}/{unlearn_ratio_str}/GOLD_{dataset}_node_{unlearn_ratio_str}_{self.run}.pt"
                 data_path = f"/data/processed/transductive/{dataset}0.8_0_0.2.pkl"
-                original_model_path = f"/data/model/node_level/{dataset}/node/GCN"
+                original_model_path = f"/data/model/node_level/{dataset}/{self.args['unlearn_task']}/{self.args['base_model']}"
                 
-                append_to_file(filename, f"-----------------    {dataset} --------------- GUIDE --------------------- {self.args['unlearn_ratio']:.2f}")
+                append_to_file(filename, f"-----------------    {dataset} --------------- GUIDE --------------------- {self.args['unlearn_ratio']:.2f} ------------- {self.args['unlearn_task']}")
 
                 with open(data_path, "rb") as f:
                     gold_data = pickle.load(f)
@@ -394,35 +405,7 @@ class guide(Shard_based_pipeline):
                     copy_data = copy.deepcopy(data)
                     args['out_dim'] = data.y.max().item() + 1
 
-                    if model_type == 'Projector':
-                        extra_feats = torch.zeros(copy_data.x.size(0), device=copy_data.x.device)
-                        extra_feats[unlearned_nodes] = 1
-                        copy_data.x = torch.cat([copy_data.x, extra_feats.view(-1, 1)], dim=1)
-
-                        checkpoint = torch.load(model_path)
-                        state_dict = checkpoint['model_state'] if isinstance(checkpoint, dict) and 'model_state' in checkpoint else checkpoint
-                        W_shape = state_dict['W'].shape
-                        y_dims = W_shape[1]
-                        x_iters = 3
-                        y_iters = 3
-                        x_dims = copy_data.x.size(1)
-
-                        projector_args = {
-                            # 'dataset_name': dataset,
-                            'downstream_task': 'node',
-                            'base_model': 'GCN',
-                            'hidden_dim': 64,
-                            'out_dim': y_dims,
-                            'x_iters': x_iters,
-                            'y_iters': y_iters,
-                            'use_adapt_gcs': False,
-                            'use_cross_entropy': True,
-                        }
-
-                        model = Pro_GNN(x_dims, y_dims, device="cuda", args=projector_args).to("cuda")
-                        model.load_state_dict(state_dict)
-
-                    elif model_type == 'GNNDelete':
+                    if model_type == 'GNNDelete':
                         model = GCNDelete(args, data.num_node_features, args['out_dim'])
 
                     else:  # Includes "GOLD" and "GIF"
@@ -458,17 +441,7 @@ class guide(Shard_based_pipeline):
 
                     model.eval()
                     with torch.no_grad():
-                        if model_type == "Projector":
-                            subgraph_data = copy_data.clone()
-                            subgraph_data.adj_t = SparseTensor.from_edge_index(copy_data.edge_index).t().to("cuda")
-                            subgraph_data.y_one_hot_train = F.one_hot(copy_data.y, y_dims).float().to("cuda")
-                            subgraph_data.root_n_id = torch.arange(copy_data.x.size(0), device='cuda')
-                            logits = model(subgraph_data)
-
-                        elif model_type == 'GNNDelete':
-                            logits = model(data.x, data.edge_index, mask_1hop=mask_1hop, mask_2hop=mask_2hop)
-
-                        elif model_type == "GIF" or model_type == 'IDEA':
+                        if model_type == "GIF" or model_type == 'IDEA':
                             logits = model.reason_once_unlearn(copy_data)
 
                         else:  # "GOLD" or standard
@@ -482,10 +455,10 @@ class guide(Shard_based_pipeline):
 
                 def region_wise_exact(ref, comp, retained_train_mask, unlearned_train_mask, test_mask):
                     for name, mask in [
-                        ("Retained Train Nodes", retained_train_mask),
-                        ("Unlearned Train Nodes", unlearned_train_mask),
+                        # ("Retained Train Nodes", retained_train_mask),
+                        # ("Unlearned Train Nodes", unlearned_train_mask),
                         ("Test Nodes", test_mask),
-                        ("Full Dataset", None)
+                        # ("Full Dataset", None)
                     ]:
                         exact = exact_match(ref, comp, mask) if mask is not None else np.mean(ref == comp)
                         print(f"[{name}] Exact Match: {exact:.4f}")
@@ -517,23 +490,23 @@ class guide(Shard_based_pipeline):
                     test_mask=self.test_mask
                 )
 
-                append_to_file(filename, "----------------------------------------- GOLD VS ORG---------------------------------------------------")
-                region_wise_exact(
-                    ref=gold_preds,
-                    comp=orz_preds,
-                    retained_train_mask=self.retained_train_mask,
-                    unlearned_train_mask=self.unlearned_train_mask,
-                    test_mask=self.test_mask
-                )
+                # append_to_file(filename, "----------------------------------------- GOLD VS ORG---------------------------------------------------")
+                # region_wise_exact(
+                #     ref=gold_preds,
+                #     comp=orz_preds,
+                #     retained_train_mask=self.retained_train_mask,
+                #     unlearned_train_mask=self.unlearned_train_mask,
+                #     test_mask=self.test_mask
+                # )
 
-                append_to_file(filename, "----------------------------------------- ORG VS GUIDE---------------------------------------------------")
-                region_wise_exact(
-                    ref=orz_preds,
-                    comp=aggregated_preds,
-                    retained_train_mask=self.retained_train_mask,
-                    unlearned_train_mask=self.unlearned_train_mask,
-                    test_mask=self.test_mask
-                )
+                # append_to_file(filename, "----------------------------------------- ORG VS GUIDE---------------------------------------------------")
+                # region_wise_exact(
+                #     ref=orz_preds,
+                #     comp=aggregated_preds,
+                #     retained_train_mask=self.retained_train_mask,
+                #     unlearned_train_mask=self.unlearned_train_mask,
+                #     test_mask=self.test_mask
+                # )
 
                 # Global match on test mask
                 jaccard = np.mean(gold_preds[self.test_mask] == aggregated_preds[self.test_mask])
@@ -541,12 +514,35 @@ class guide(Shard_based_pipeline):
                 test_acc_o = accuracy_score(orz_preds[self.test_mask], self.data.y[self.test_mask])
                 test_acc_r = accuracy_score(gold_preds[self.test_mask], self.data.y[self.test_mask])
 
-                print("\ntest acc guide", test_acc_g)
-                append_to_file(filename, f"test accuracy of GUIDE is {test_acc_g}")
+                if self.args["attack_type"] and self.args["unlearn_task"] == "node":
+                    # train an attack model using the current run's unlearn list 
+                    ATTACK_MAP = {
+                        "TrendAttack": TrendAttack, 
+                        "MRattack": MRattack,
+                    }
+                    attack_auc =ATTACK_MAP[self.args["attack_type"]](
+                        orz_preds,
+                        weighted_pred,
+                        self.data,
+                        self.data.train_mask,
+                        self.data.test_mask,
+                        unlearned_indices=None,   # will auto-load the run's unlearn file
+                        run_number=self.run,
+                        u_ratio=self.args["unlearn_ratio"],
+                        dataset=dataset,
+                        order=2,
+                        train_attack=True,
+                        verbose=True
+                    )
+                    print(f"\n{self.args['attack_type']} AUROC guide: {attack_auc}")
+                    append_to_file(filename, f"\n{self.args['attack_type']} AUROC guide: {attack_auc}")
+
+                print(f"\ntest acc guide", test_acc_g)
+                append_to_file(filename, f"test accuracy of GUIDE is {test_acc_g:.4f}")
                 print("test acc retrain gold", test_acc_r)
-                append_to_file(filename, f"test accuracy of retrain GOLD is {test_acc_r}")
+                append_to_file(filename, f"test accuracy of retrain GOLD is {test_acc_r:.4f}")
                 print("test acc original", test_acc_o)
-                append_to_file(filename, f"test accuracy of original is {test_acc_o}")
+                append_to_file(filename, f"test accuracy of original is {test_acc_o:.4f}")
                 self.logger.info(f"[Unlearning] Jaccard similarity (test mask) with gold retrain: {jaccard:.4f}")
                 #----------------------end---------------------------------------
 
@@ -574,35 +570,51 @@ class guide(Shard_based_pipeline):
         """
         self.start_time = time.time()
         if self.args["unlearn_task"] == "edge":
-            #get the deleting edges
-            edge_index = self.data.edge_index.numpy()
-            self.num_unlearned_edges = 0
-            train_edge_indices = np.logical_and(np.isin(edge_index[0], self.data.train_indices),
-                                    np.isin(edge_index[1], self.data.train_indices))
+            # #get the deleting edges
+            # edge_index = self.data.edge_index.numpy()
+            # self.num_unlearned_edges = 0
+            # train_edge_indices = np.logical_and(np.isin(edge_index[0], self.data.train_indices),
+            #                         np.isin(edge_index[1], self.data.train_indices))
 
-            # 过滤出满足 edge_index[0] < edge_index[1] 的边，构成单向边
-            directed_train_edges = np.logical_and(train_edge_indices, edge_index[0] < edge_index[1])
+            # # 过滤出满足 edge_index[0] < edge_index[1] 的边，构成单向边
+            # directed_train_edges = np.logical_and(train_edge_indices, edge_index[0] < edge_index[1])
 
-            # 获取这些单向边的索引
-            train_edges = np.where(directed_train_edges)[0]
+            # # 获取这些单向边的索引
+            # train_edges = np.where(directed_train_edges)[0]
 
-            # 计算需要删除的边的数量 (5%)
-            num_edges_to_remove = int(len(train_edges) * 0.05)
+            # # 计算需要删除的边的数量 (5%)
+            # num_edges_to_remove = int(len(train_edges) * 0.05)
 
-            # 随机选择 5% 的单向边
-            edges_to_remove = np.random.choice(train_edges, size=num_edges_to_remove, replace=False)
+            # # 随机选择 5% 的单向边
+            # edges_to_remove = np.random.choice(train_edges, size=num_edges_to_remove, replace=False)
 
-            # 找到与这些单向边对应的反向边
-            reverse_edges_to_remove = np.where(
-                (edge_index[0][None, :] == edge_index[1][edges_to_remove][:, None]) &
-                (edge_index[1][None, :] == edge_index[0][edges_to_remove][:, None])
-            )[1]
+            # # 找到与这些单向边对应的反向边
+            # reverse_edges_to_remove = np.where(
+            #     (edge_index[0][None, :] == edge_index[1][edges_to_remove][:, None]) &
+            #     (edge_index[1][None, :] == edge_index[0][edges_to_remove][:, None])
+            # )[1]
+            # all_edges_to_remove = np.concatenate([edges_to_remove, reverse_edges_to_remove])
+
+            path_un = unlearning_edge_path + "_" + str(self.run) + "_edges_" + str(self.args["num_unlearned_edges"]) + ".txt"
+            raw = np.loadtxt(path_un, dtype=int, ndmin=1)  # ensure at least 1d
+            if raw.ndim > 1:
+                raw = raw.flatten()
+
+            # Convert to python int list and remove duplicates while preserving order
+            all_edges_to_remove = []
+            seen = set()
+            for x in raw.tolist():
+                xi = int(x)
+                if xi not in seen:
+                    seen.add(xi)
+                    all_edges_to_remove.append(xi)
 
             # 合并正向边和反向边的索引
             gis_keys_graph = {}
             gis_keys_graph[0] = {}
             self.part_set = []
-            all_edges_to_remove = np.concatenate([edges_to_remove, reverse_edges_to_remove])
+
+
             for part_id, edge_index in self.p1_saved.shards_edges.items():
                 loadname = self.p1_saved.DPATH.replace('partid', 'part' + str(part_id))
                 sub_graph = torch.load(loadname)
@@ -737,7 +749,8 @@ class guide(Shard_based_pipeline):
             gis_keys_graph = {}
             gis_keys_graph[0] = {}
             self.part_set = []
-            path_un = unlearning_path + "_" + str(self.run) + ".txt"
+            # path_un = unlearning_path + "_" + str(self.run) + ".txt"
+            path_un = unlearning_path + "_" + str(self.run) + "_nodes_" + str(self.args["num_unlearned_nodes"])+ ".txt"
             self.unlearning_id = np.loadtxt(path_un, dtype=int)
 
             is_in = np.intersect1d(self.unlearning_id, np.array(self.data.train_indices))
@@ -754,12 +767,15 @@ class guide(Shard_based_pipeline):
                     gi_tuples_in[j[0]].append(j[1])
 
                 gi_part_uid[i] = gi_tuples_in
-            self.gis_keys_graph_update = copy.deepcopy(gis_keys_graph)
+            # self.gis_keys_graph_update = copy.deepcopy(gis_keys_graph)
 
             for part_id, edge_index in self.p1_saved.shards_ids.items():
                 loadname = self.p1_saved.DPATH.replace('partid', 'part' + str(part_id))
                 sub_graph = torch.load(loadname)
                 gis_keys_graph[0][part_id] = sub_graph
+            
+            # make the copy only after we populated gis_keys_graph
+            self.gis_keys_graph_update = copy.deepcopy(gis_keys_graph)
 
             for gi in gi_part_uid.keys():
                 

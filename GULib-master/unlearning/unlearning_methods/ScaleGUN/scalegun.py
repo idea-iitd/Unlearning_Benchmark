@@ -427,17 +427,47 @@ class scalegun(IF_based_pipeline):
         self.data.y = self.data.y.long()
         self.feat_dim = self.data.x.shape[1]
         self.num_classes = self.data.y.max().item() + 1
+        
         self.X_train, self.X_val, self.X_test, self.y_train, self.y_val, self.y_test, self.train_mask, self.val_mask, self.test_mask = get_split(
             self.data, X, self.args["train_mode"], self.args["Y_binary"])
         # X_train, X_val, X_test, y_train, y_val, y_test, train_mask, val_mask, test_mask = X[self.data.train_mask], X[self.data.val_mask], X[self.data.test_mask], self.data.y[self.data.train_mask], self.data.y[self.data.val_mask], self.data.y[self.data.test_mask], self.data.train_mask, self.data.val_mask, self.data.test_mask
         # print(X_train,y_train.shape)
         # del X
         # del data
+        
+        # Ensure validation indices are set by taking 100 nodes from training set
+        if not hasattr(self.data, 'val_indices') or len(getattr(self.data, 'val_indices', [])) == 0:
+            # Get indices of training nodes
+            train_indices = torch.where(self.train_mask)[0]
+            
+            # Randomly select 100 nodes from training set for validation
+            val_size = min(100, len(train_indices) // 10)  # Take 100 or 10% of training, whichever is smaller
+            perm = torch.randperm(len(train_indices))
+            val_from_train_indices = train_indices[perm[:val_size]]
+            
+            # Update masks - remove selected nodes from training and add to validation
+            # self.train_mask[val_from_train_indices] = False
+            self.val_mask[val_from_train_indices] = True
+            
+            # Update the data object
+            # self.data.train_mask = self.train_mask
+            self.data.val_mask = self.val_mask
+            self.data.val_indices = val_from_train_indices
+            
+            # Update the split data
+            # self.X_train = X[self.train_mask]
+            self.X_val = X[self.val_mask]
+            # self.y_train = self.data.y[self.train_mask]
+            self.y_val = self.data.y[self.val_mask]
+            
+            self.logger.info(f"Set validation indices: {val_size} nodes moved from training to validation")
+        
         self.logger.info(
             "Train node:{}, Val node:{}, Test node:{}, feat dim:{}, classes:{}".format(
                 self.X_train.shape[0], self.X_val.shape[0], self.X_test.shape[0], self.feat_dim, self.num_classes
             )
         )
+        
         self.train_size = self.X_train.shape[0]
         if self.args["compare_gnorm"]:
             self.b_std = 0
@@ -529,7 +559,7 @@ class scalegun(IF_based_pipeline):
         self.tot_cost = [train_finish_time - train_time+self.prop_time,]
         self.acc_removal = [[val_acc], [test_acc]]
         self.logger.info("first train cost: %.6fs" % (train_finish_time - train_time))
-        breakpoint()
+        # breakpoint()
         
     def unlearning_request(self):
         """
@@ -564,13 +594,14 @@ class scalegun(IF_based_pipeline):
         # edge_file = self.del_path + "/" + self.args["dataset_name"] + "/" + \
         #     self.args["dataset_name"] + f"_del_edges.npy"
         if self.args['unlearn_task']=='node':
-            path_un = unlearning_path + "_" + str(self.run) + ".txt"
+            path_un = unlearning_path + "_" + str(self.run) + "_nodes_" + str(self.args["num_unlearned_nodes"])+ ".txt"
             self.unlearning_nodes = np.loadtxt(path_un, dtype=int)
             unlearning_nodes = torch.tensor(self.unlearning_nodes)
             mask_start = torch.isin(self.data.edge_index[0], unlearning_nodes)
             mask_end = torch.isin(self.data.edge_index[1],  unlearning_nodes)
             mask = mask_start | mask_end
             self.del_edges = self.data.edge_index[:, mask]
+            # breakpoint()
         else:
             #--------------------
             # Check if direct edge deletion file is provided
@@ -612,6 +643,8 @@ class scalegun(IF_based_pipeline):
         This function iteratively removes edges from the graph, updates the model's weights, and evaluates the performance 
         after each removal. It also compares the gradient norms and retrains the model if necessary.
         """
+        # breakpoint()
+        X_train_early_old = self.X_train_old.clone().detach().to(self.device)
         for i in range(self.args["num_batch_removes"]):
             edges = self.del_edges[
                 :,
@@ -695,12 +728,14 @@ class scalegun(IF_based_pipeline):
                 X_test_new = X_new[self.test_mask].to(self.device)
                 self.acc_removal[1].append(ovr_lr_eval(
                     self.w_approx, X_test_new, self.y_test)[1])
+                # Update X_train_old for next iteration
+                self.X_train_old = X_train_new.clone().detach()
             else:
                 X_train_new = X_new[self.train_mask].to(self.device)
                 self.y_train = self.y_train.to(self.device)
                 H_inv = lr_hessian_inv(self.w_approx, X_train_new, self.y_train, self.args['lam'])
                 # grad_i should be the difference
-                grad_old = lr_grad(self.w_approx, X_train_old, self.y_train, self.args['lam'])
+                grad_old = lr_grad(self.w_approx, self.X_train_old, self.y_train, self.args['lam'])
                 grad_new = lr_grad(self.w_approx, X_train_new, self.y_train, self.args['lam'])
                 grad_i = grad_old - grad_new
                 Delta = H_inv.mv(grad_i)
@@ -745,7 +780,8 @@ class scalegun(IF_based_pipeline):
                 self.acc_removal[1].append(lr_eval(self.w_approx, X_test_new, self.y_test).item())
             self.unlearn_cost.append(remove_finish_time - update_finish_time)
             self.tot_cost.append(remove_finish_time - update_finish_time+return_time)
-            X_train_old = X_train_new.clone().detach()
+            # Update X_train_old for next iteration
+            self.X_train_old = X_train_new.clone().detach()
             if i % self.args['disp'] == 0:
                 self.logger.info(
                     f"Iteration {i}: Edge del = {edges[0]}, grad_norm_approx = {self.grad_norm_approx[i]}, Val acc = {self.acc_removal[0][i+1]} Test acc = {self.acc_removal[1][i+1]}, avg update cost: {self.update_cost[i+1]}, avg unlearn cost:{self.unlearn_cost[i+1]}, avg tot cost:{self.tot_cost[i+1]}, num_retrain: {self.num_retrain}"
@@ -761,8 +797,31 @@ class scalegun(IF_based_pipeline):
         self.average_f1[self.run] = self.acc_removal[1][-1]
         self.avg_unlearning_time[self.run] = sum(self.tot_cost[1:]) / (len(self.tot_cost)-1)
         
+        # Evaluate final unlearned model stats (similar to base model)
+        X_new_final = torch.FloatTensor(self.feat.numpy().T)
+        X_val_new_final = X_new_final[self.val_mask].to(self.device)
+        X_test_new_final = X_new_final[self.test_mask].to(self.device)
+        
+        if self.args["train_mode"] == "ovr":
+            unlearned_val_acc, unlearned_val_f1, unlearned_val_recall = ovr_lr_eval(self.w_approx, X_val_new_final, self.y_val)
+            unlearned_test_acc, unlearned_test_f1, unlearned_test_recall = ovr_lr_eval(self.w_approx, X_test_new_final, self.y_test)
+            self.logger.info("=" * 60)
+            self.logger.info("Final Unlearned Model Stats:")
+            self.logger.info("Validation accuracy: %.4f, F1: %.4f, Recall: %.4f" % (unlearned_val_acc, unlearned_val_f1, unlearned_val_recall))
+            self.logger.info("Test accuracy: %.4f, F1: %.4f, Recall: %.4f" % (unlearned_test_acc, unlearned_test_f1, unlearned_test_recall))
+            self.logger.info("=" * 60)
+        else:
+            unlearned_val_acc = lr_eval(self.w_approx, X_val_new_final, self.y_val)
+            unlearned_test_acc = lr_eval(self.w_approx, X_test_new_final, self.y_test)
+            self.logger.info("=" * 60)
+            self.logger.info("Final Unlearned Model Stats:")
+            self.logger.info("Validation accuracy: %.4f" % unlearned_val_acc)
+            self.logger.info("Test accuracy: %.4f" % unlearned_test_acc)
+            self.logger.info("=" * 60)
+        
         #----------------------
         # Save the models after unlearning
+        # breakpoint()
         self.save_models()
         #-------------- end --------------
         

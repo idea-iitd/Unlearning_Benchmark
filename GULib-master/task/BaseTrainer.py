@@ -100,7 +100,7 @@ class BaseTrainer:
     #         return self.train_graph(save,model_path)
 
     #------------------------------------- Start -------------------------------------------
-    def train(self, save=False, model_path=None, needs_retrain = True):
+    def train(self, save=False, model_path=None, needs_retrain = False):
         """
         Trains the model based on the specified downstream task (node, edge, or graph).
         If a base model already exists, it is loaded instead of retraining.
@@ -132,11 +132,14 @@ class BaseTrainer:
         print(f"No existing model found at {model_path}. Training new model...")
         if self.args["downstream_task"] == 'node':
             if needs_retrain==True:
-                return self.train_node(save=False, model_path=model_path)  # force save=True
+                return self.train_node(save=False, model_path=model_path)  
             else:
-                return self.train_node(save=True, model_path=model_path)
+                return self.train_node(save=True, model_path=model_path)    # force save=True
         elif self.args["downstream_task"] == 'edge':
-            return self.train_edge(save=True, model_path=model_path)
+            if needs_retrain==True:
+                return self.train_node(save=False, model_path=model_path)  
+            else:
+                return self.train_node(save=True, model_path=model_path) # force save=True
         elif self.args["downstream_task"] == "graph":
             self.train_loader = DataLoader(self.data[0], batch_size=64, shuffle=False)
             self.test_loader = DataLoader(self.data[1], batch_size=64, shuffle=False)
@@ -157,7 +160,10 @@ class BaseTrainer:
                    depending on the task.
         """
         if self.args["downstream_task"] == 'node':
-            return self.test_node_fullbatch()
+            if self.args["use_batch"]:
+                return self.test_node_minibatch()
+            else:
+                return self.test_node_fullbatch()
         elif self.args["downstream_task"] == 'edge':
             return self.evaluate_edge_model()
         elif self.args["downstream_task"]=="graph":
@@ -489,7 +495,8 @@ class BaseTrainer:
         self.data.num_nodes = self.data.x.size(0)
         self.data = self.data.to('cpu')
         if self.args["base_model"] == "SAINT" or self.args["base_model"] == "GCN":
-            self.loader = GraphSAINTNodeSampler(self.data,batch_size=256)
+            self.data.num_edges = self.data.edge_index.shape[1]
+            self.loader = GraphSAINTNodeSampler(self.data,batch_size=self.args["batch_size"])
         elif self.args["base_model"] == "Cluster_GCN":
             cluster_data = ClusterData(self.data, num_parts=50)  
             cluster_data.data.num_edges = self.data.edge_index.size(1)

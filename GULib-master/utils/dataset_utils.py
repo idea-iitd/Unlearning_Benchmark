@@ -171,11 +171,12 @@ def process_data(logger,data,args):
             if not os.path.isfile(path_un):
                 np.savetxt(path_un, unlearning_nodes, fmt="%d")
     elif args["unlearn_task"]=="edge":
-        # edge_index_to_use = data.train_edge_index if hasattr(data, "train_edge_index") else data.edge_index
-        edge_index_to_use = data.edge_index 
+        edge_index_to_use = data.train_edge_index if hasattr(data, "train_edge_index") else data.edge_index
+        # edge_index_to_use = data.edge_index 
         train_edges = np.array(edge_index_to_use)
         # train_edges = np.array(data.train_edge_index)
         num_unlearned_edges = int(train_edges.shape[1] * args["unlearn_ratio"])
+        # breakpoint()
         for i in range(args["num_runs"]):
             path_un_edge = unlearning_edge_path + "_" + str(i) + "_edges_" + str(args["num_unlearned_edges"]) + ".txt"
             if args["poison"]:
@@ -1103,6 +1104,7 @@ def load_saved_data(logger,filename = config.train_data_file):
             The loaded training data.
     """
     logger.info('load_saved_data {}'.format(filename))
+    # breakpoint()
     with open(filename, 'rb') as file:
         data = pickle.load(file)
     return data

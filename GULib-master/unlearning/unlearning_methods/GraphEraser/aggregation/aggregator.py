@@ -30,6 +30,17 @@ import argparse
 from unlearning.unlearning_methods.Projector.utils.graph_projector_model_utils import Pro_GNN
 import copy
 from torch_sparse import SparseTensor
+from Trend_attack import TrendAttack
+from Membership_Recall_Attack import MRattack
+from sklearn.metrics import precision_score, recall_score
+from sklearn.model_selection import train_test_split
+import joblib  
+
+# --- place near top of file with other imports ---
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score, accuracy_score
+from collections import defaultdict
 
 # Add the GULib-master/ root to sys.path
 # sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
@@ -42,35 +53,7 @@ def load_and_predict(model_path, model_type="GOLD", unlearned_param_path=None, d
     copy_data = copy.deepcopy(data)
     args['out_dim'] = data.y.max().item() + 1
 
-    if model_type == 'Projector':
-        extra_feats = torch.zeros(copy_data.x.size(0), device=copy_data.x.device)
-        extra_feats[unlearned_nodes] = 1
-        copy_data.x = torch.cat([copy_data.x, extra_feats.view(-1, 1)], dim=1)
-
-        checkpoint = torch.load(model_path)
-        state_dict = checkpoint['model_state'] if isinstance(checkpoint, dict) and 'model_state' in checkpoint else checkpoint
-        W_shape = state_dict['W'].shape
-        y_dims = W_shape[1]
-        x_iters = 3
-        y_iters = 3
-        x_dims = copy_data.x.size(1)
-
-        projector_args = {
-            # 'dataset_name': dataset,
-            'downstream_task': 'node',
-            'base_model': args['base_model'],
-            'hidden_dim': 64,
-            'out_dim': y_dims,
-            'x_iters': x_iters,
-            'y_iters': y_iters,
-            'use_adapt_gcs': False,
-            'use_cross_entropy': True,
-        }
-
-        model = Pro_GNN(x_dims, y_dims, device="cuda", args=projector_args).to("cuda")
-        model.load_state_dict(state_dict)
-
-    elif model_type == 'GNNDelete':
+    if model_type == 'GNNDelete':
         if args['base_model'] == "GCN":
             model = GCNDelete(args, data.num_node_features, args['out_dim'])
         elif args['base_model'] == "GAT":
@@ -116,17 +99,7 @@ def load_and_predict(model_path, model_type="GOLD", unlearned_param_path=None, d
 
     model.eval()
     with torch.no_grad():
-        if model_type == "Projector":
-            subgraph_data = copy_data.clone()
-            subgraph_data.adj_t = SparseTensor.from_edge_index(copy_data.edge_index).t().to("cuda")
-            subgraph_data.y_one_hot_train = F.one_hot(copy_data.y, y_dims).float().to("cuda")
-            subgraph_data.root_n_id = torch.arange(copy_data.x.size(0), device='cuda')
-            logits = model(subgraph_data)
-
-        elif model_type == 'GNNDelete':
-            logits = model(data.x, data.edge_index, mask_1hop=mask_1hop, mask_2hop=mask_2hop)
-
-        elif model_type == "GIF" or model_type == 'IDEA':
+        if model_type == "GIF" or model_type == 'IDEA':
             logits = model.reason_once_unlearn(copy_data)
 
         else:  # "GOLD" or standard
@@ -139,9 +112,15 @@ def load_and_predict(model_path, model_type="GOLD", unlearned_param_path=None, d
 def exact_match(y1, y2, mask):
     return np.mean(y1[mask] == y2[mask])
 
-out_file = "/GraphEraser_utility_Stats.txt"
+# === Final aggregate results ===
+def mean_std_str(values):
+    return f"{np.mean(values):.4f} ± {np.std(values):.4f}"
+
+out_file = "GraphEraser_Stats.txt"
 # static/global storage for all runs
+
 call_count = 0
+attack_auc_runs = []
 all_results = {
     # accuracy buckets
     "retained_acc": [],
@@ -361,7 +340,6 @@ class Aggregator:
             original_model_path = f"/data/model/node_level/{dataset}/{unlearn_task}/{self.args['base_model']}"
             gold_model_path = f"/unlearned_models/GOLD/{dataset}/{unlearn_task}/{unlearn_ratio}/GOLD_{dataset}_node_{unlearn_ratio}{run_str}{base_model_str}.pt"
             data_path = f"/data/processed/transductive/{dataset}0.8_0_0.2.pkl"
-            # gold_model_path_copy = f"/unlearned_models/GOLD/{dataset}/{unlearn_task}/{unlearn_ratio}_copy/GOLD_{dataset}_node_{unlearn_ratio}.pt"
 
             with open(data_path, "rb") as f:
                 data = pickle.load(f)
@@ -394,11 +372,29 @@ class Aggregator:
             gold_preds = load_and_predict(gold_model_path, model_type="GOLD", data=data,args=model_args)
             original_preds = load_and_predict(original_model_path, model_type="GOLD", data=data,args=model_args)
             aggregated_preds = posterior.argmax(dim=1).cpu().numpy()
+            if self.args["attack_type"] and unlearn_task == "node":
+                # train an attack model using the current run's unlearn list 
+                ATTACK_MAP = {
+                    "TrendAttack": TrendAttack, 
+                    "MRattack": MRattack,
+                }
+                attack_auc =ATTACK_MAP[self.args["attack_type"]](
+                    original_preds,
+                    posterior,
+                    data,
+                    train_mask,
+                    test_mask,
+                    unlearned_indices=None,   # will auto-load the run's unlearn file
+                    run_number=self.run,
+                    u_ratio=self.args['unlearn_ratio'],
+                    dataset=dataset,
+                    order=2,
+                    train_attack=True,
+                    verbose=True
+                )
+                # breakpoint()
+                attack_auc_runs.append(attack_auc)
             # gold_preds_copy = load_and_predict(gold_model_path_copy, model_type="GOLD", data=data)
-
-            copy_str=""
-            if self.args["use_copy"]:
-                copy_str=" 2"
 
             # save them in static/global dict
             retained_acc = accuracy_score(aggregated_preds[self.retained_train_mask], data.y[self.retained_train_mask].cpu())
@@ -444,7 +440,7 @@ class Aggregator:
             if self.run==self.args["num_runs"]-1:   
                 with open(out_file, "a") as f:
                     # --- Accuracy metrics ---
-                    f.write(f"=== Dataset: {dataset}, {unlearn_ratio}, {self.args['base_model']} ===\n")
+                    f.write(f"=== Dataset: {dataset}, {unlearn_ratio}, {self.args['base_model']}, {self.args['unlearn_task']} ===\n")
                     f.write("=== Accuracies ===\n")
                     print("\n=== Accuracies ===")
                     for k in ["retained_acc", "unlearned_acc", "test_acc", "full_acc"]:
@@ -467,6 +463,9 @@ class Aggregator:
                             line = f"{k}: mean={mean_val:.4f}, std={std_val:.4f}"
                             print(line)
                             f.write(line + "\n")
+                    # breakpoint()
+                    f.write(f"\n=== {self.args['attack_type']} AUROC = {mean_std_str(attack_auc_runs)} ===\n")
+                    print(f"\n=== {self.args['attack_type']} AUROC =  {mean_std_str(attack_auc_runs)} ===\n")
 
         call_count+=1
         return aggregate_f1_score
@@ -521,6 +520,7 @@ class Aggregator:
         
         # print(posterior,self.true_label_edge)
         if self.args["downstream_task"]=="node":
+            breakpoint()
             return f1_score(self.true_label, posterior.argmax(axis=1).cpu().numpy(), average="micro"), posterior
         elif self.args["downstream_task"]=="edge":
             posterior = torch.where(posterior > 0.5, torch.tensor(1), torch.tensor(0))

@@ -304,7 +304,7 @@ class grapheraser(Shard_based_pipeline):
                 np.savetxt(path_un_edge, self.unlearning_edges.T, fmt="%d")
                 
         elif self.args["unlearn_task"] == "feature":
-            path_un = config.unlearning_path + "_" + str(self.run) + ".txt"
+            path_un = unlearning_path + "_" + str(self.run) + "_nodes_" + str(self.args["num_unlearned_nodes"])+ ".txt"
             if os.path.exists(path_un):
                 with open(path_un) as file:
                     self.node_unlearning_indices = [int(line.rstrip()) for line in file]

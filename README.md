@@ -110,7 +110,7 @@ This command will **train**, **unlearn**, and **save** the unlearned model.
 | `--cuda <device>` | Specify GPU device to use | `--cuda 0` |
 | `--dataset_name <name>` | Graph dataset name | `--dataset_name cora` |
 | `--base_model <model>` | Base GNN model architecture | `GCN`, `GAT`, `GIN` |
-| `--unlearning_methods <method>` | Unlearning method | `MEGU`, `GraphEraser`, `GUIDE`, `GNNDelete`, `GIF`, `IDEA`, `Projector` |
+| `--unlearning_methods <method>` | Unlearning method | `MEGU`, `GIF`, `GraphEraser`, `GUIDE`, `GNNDelete`, `IDEA`, `Projector`, `ScaleGun`, `CGU` |
 | `--unlearn_ratio <value>` | Fraction of data to unlearn | `0.1` |
 | `--num_epochs <N>` | Number of training epochs | `100` |
 | `--batch_size <N>` | Batch size | `64` |
@@ -119,14 +119,9 @@ This command will **train**, **unlearn**, and **save** the unlearned model.
 
 ---
 
-## Forgetting and Efficiency Evaluation
+## Efficiency Evaluation
 
-To evaluate **forgetting performance** using Membership Inference (MI) Attack:
-```bash
---attack True
-```
-
-To record **efficiency metrics** (time and memory usage):
+To record **efficiency metrics** breakdowns (time and memory usage) give this argument in main.py:
 ```bash
 --cal_mem True
 ```
@@ -150,15 +145,25 @@ This computes:
 - **Fidelity**
 - **Logit Similarity**
 
-Note:
-- Utility results for **GraphEraser** and **GUIDE** are automatically stored during unlearning:
-  - `GraphEraser_utility_stats.txt`
-  - `GUIDE_utility_stats.txt`
-
 For Getting Weight Comparsion Results, run:
 ```bash
 python GULib-master/Weight_comparison.py
 ```
+
+## Forgetting Evaluation
+
+To evaluate **forgetting performance** using given attack use attack_type argument in evaluate_unlearning.py:
+```bash
+--attack_type Attack_Name 
+```
+Where Attack_Name could be from MIattack, TrendAttack, MRattack. 
+
+Note:
+- Utility results for **GraphEraser** and **GUIDE** are automatically stored during unlearning:
+  - `GraphEraser_utility_stats.txt`
+  - `GUIDE_utility_stats.txt`
+- For getting forgetting results for them, give attack_type argument in main.py
+
 ---
 
 ## Datasets
@@ -177,12 +182,14 @@ Supported graph datasets:
 
 Our benchmark currently supports:
 - **MEGU**
+- **GIF**
+- **IDEA**
 - **GraphEraser**
 - **GUIDE**
 - **GNNDelete**
-- **GIF**
-- **IDEA**
 - **Projector**
+- **ScaleGun**
+- **CGU**
 
 ---
 

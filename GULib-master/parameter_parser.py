@@ -76,7 +76,7 @@ def parameter_parser():
     parser.add_argument('--base_model', type=str, default='GCN', choices=["SIGN", "SGC","S2GC","SAGE", "GAT", 'Cluster_GCN', "GCN", "GIN",
                                                                           "GST","SAINT","Projector","Cheb","APPNP","GCN2","GATv2","TAG","LightGCN"])
     parser.add_argument('--unlearning_methods', type=str, default='SGU',
-                        choices=['GraphEraser', 'GUIDE', 'GNNDelete', 'CEU', "GIF", "SGU","CGU","GST","Projector","MEGU","GraphRevoker","UTU","GUKD","D2DGN","IDEA","ScaleGUN"])
+                        choices=['GraphEraser', 'GUIDE', 'GNNDelete', 'CEU', "GIF", "SGU","CGU","GST","Projector","MEGU","IDEA","ScaleGUN","COGNAC","ETR"])
     parser.add_argument('--train_ratio', type=float, default=0.8)
     parser.add_argument('--val_ratio', type=float, default=0)
     parser.add_argument('--test_ratio', type=float, default=0.2)
@@ -117,8 +117,8 @@ def parameter_parser():
     parser.add_argument('--unlearn_lr', type=float, default=0.01,help='used in GNNDelete and CEU')
 
     # MiA attack needed or not
-    parser.add_argument('--attack', type=str2bool, default=False)
-
+    parser.add_argument('--attack', type=str2bool, default=False) #implemets simple MIA attack
+    parser.add_argument('--attack_type', type=str, default=None, help = "Attack model for forgetting evaluation", choices=['MIattack','TrendAttack', "MRattack"]) #for other attacks
     #GUIDE parameter
     parser.add_argument('--GUIDE_methods', type=str, default= "Fast",choices=["Fast","SR"])
     parser.add_argument('--GUIDE_repair_methods', type=str, default= "MixUp",choices=["Zero", "Mirror", "MixUp", "NoneR"])
@@ -304,7 +304,7 @@ def parameter_parser():
     parser.add_argument("--del_postfix", type=str, default="")
     parser.add_argument("--del_only", default=False, action="store_true")
     parser.add_argument("--lr", default=0.005, type=float)
-    parser.add_argument("--num_batch_removes", default=5, type=int)
+    parser.add_argument("--num_batch_removes", default=200, type=int)
     parser.add_argument("--no_retrain", action="store_true", default=True)
     parser.add_argument("--edge_idx_start", default=0, type=int)
     parser.add_argument("--num_removes", default=10, type=int,
