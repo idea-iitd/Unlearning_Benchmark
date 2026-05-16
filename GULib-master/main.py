@@ -89,7 +89,7 @@ if __name__ == '__main__':
     # breakpoint()
     data,dataset = original_data.load_data()
     print("done done 2")
-    # 使用 assert 直接检查 args 中的参数
+
     data = process_data(logger,data,args)
     print("data processsed")
     #model

@@ -235,7 +235,7 @@ class original_dataset:
             return data, dataset
 
         #---------------------------------------------------------------------------------
-        root_path = "/data/datasets"  # Change this to your desired root path of data
+        root_path = "./data/datasets"  # Change this to your desired root path of data
         
         #-------------------------------------------------------------------------------------
         if self.dataset_name in ["cora", "pubmed", "citeseer"]:
