@@ -66,7 +66,7 @@ UNLEARN_TASK_DIR = DATA_ROOT / "data/unlearning_task/transductive/imbalanced"
 MODEL_DIR = DATA_ROOT / "data/model/node_level"
 UNLEARNED_MODEL_DIR = DATA_ROOT / "unlearned_models"
 # COGNAC_DIR = DATA_ROOT / "data/model"   #Add path to Cognac model directory
-ETR_DIR = DATA_ROOT / "data/model"    #Add path to ETR model directory
+# ETR_DIR = DATA_ROOT / "data/model"    #Add path to ETR model directory
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -156,16 +156,21 @@ def build_paths(args: argparse.Namespace) -> Dict[str, Path]:
         / f"GOLD_{dataset}_node_{unlearn_ratio_tag}{base_suffix}.pt"
     )
 
-    if method == "ETR":
-        unlearn_model_path = (
-            ETR_DIR / f"{dataset}/unlearned_model_GCNNet3_{dataset}_seed0.pt"
-        )
-    else:
-        unlearn_model_path = (
-            UNLEARNED_MODEL_DIR
-            / f"{method}/{dataset}/{unlearn_task}/{unlearn_ratio_tag}"
-            / f"{method}_{dataset}_node_{unlearn_ratio_tag}{base_suffix}.pt"
-        )
+    # if method == "ETR":
+    #     unlearn_model_path = (
+    #         ETR_DIR / f"{dataset}/unlearned_model_GCNNet3_{dataset}_seed0.pt"
+    #     )
+    # else:
+    #     unlearn_model_path = (
+    #         UNLEARNED_MODEL_DIR
+    #         / f"{method}/{dataset}/{unlearn_task}/{unlearn_ratio_tag}"
+    #         / f"{method}_{dataset}_node_{unlearn_ratio_tag}{base_suffix}.pt"
+    #     )
+    unlearn_model_path = (
+        UNLEARNED_MODEL_DIR
+        / f"{method}/{dataset}/{unlearn_task}/{unlearn_ratio_tag}"
+        / f"{method}_{dataset}_node_{unlearn_ratio_tag}{base_suffix}.pt"
+    )
 
     return {
         "data": data_path,
@@ -210,9 +215,9 @@ def unlearn_model_path_for_run(
     """
     method = paths["method"]
 
-    # ETR has no per-run checkpoints — return its single static path.
-    if method == "ETR":
-        return paths["unlearn_model"]
+    # # ETR has no per-run checkpoints — return its single static path.
+    # if method == "ETR":
+    #     return paths["unlearn_model"]
 
     ratio_tag   = paths["unlearn_ratio_tag"]
     base_suffix = paths["base_suffix"]

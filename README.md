@@ -174,7 +174,6 @@ Note:
   - `GraphEraser_utility_stats.txt`
   - `GUIDE_utility_stats.txt`
 - For getting forgetting results for them, give attack_type argument in main.py
-- Currently, to get the results on **ETR**, we follow their open-source implementation.
 
 ---
 
@@ -204,7 +203,6 @@ Our benchmark currently supports:
 - **CGU**
 - **Cognac**
 - **ETR**
-- **GOLD** *(retrain from scratch — use as baseline before running evaluation)*
 
 ---
 

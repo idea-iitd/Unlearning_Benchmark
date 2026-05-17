@@ -273,14 +273,22 @@ def parameter_parser():
                         help='Cognac: True = descent uses full graph; False = uses dr_mask edges (paper default: False)')
     
     # ETR (Erase Then Rectify) — AAAI 2025
-    parser.add_argument('--etr_erase_ratio', type=float, default=0.01,
-                        help='ETR: quantile threshold for the Erase step.')
-    parser.add_argument('--etr_l', type=float, default=0.3,
-                        help='ETR: step size for the Rectify step.')
-    parser.add_argument('--etr_lr', type=float, default=1e-3,
-                        help='ETR: Adam learning rate used when computing gradients.')
-    parser.add_argument('--etr_wd', type=float, default=1e-4,
-                        help='ETR: Adam weight decay used when computing gradients.')
+    parser.add_argument(
+        '--etr_erase_ratio', type=float, default=0.01,
+        help='ETR: quantile threshold k for the Erase step (config2.yaml: erase_ratio).'
+    )
+    parser.add_argument(
+        '--etr_l', type=float, default=0.3,
+        help='ETR: step-size coefficient for the Rectify step (config2.yaml: l).'
+    )
+    parser.add_argument(
+        '--etr_lr', type=float, default=1e-3,
+        help='ETR: Adam lr used when computing parameter gradients (config2.yaml: lr).'
+    )
+    parser.add_argument(
+        '--etr_wd', type=float, default=1e-4,
+        help='ETR: Adam weight-decay used when computing parameter gradients (config2.yaml: wd).'
+    )
     
     ###MEGU###
     parser.add_argument('--kappa', type=float, default=0.01)

@@ -1,5 +1,6 @@
 from .CGU import *
 from .Cognac import * 
+from .ETR import * 
 from .GIF import *
 from .GNNDelete import *
 from .GraphEraser import *
