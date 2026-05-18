@@ -139,7 +139,7 @@ def MRattack(
             num_nodes = data.x.size(0)
             if u_ratio is None or dataset is None:
                 raise FileNotFoundError()
-            unlearn_idx_path = f"/data/unlearning_task/transductive/imbalanced/unlearning_nodes_{u_ratio}_{dataset}_{run_number}_nodes_{int(u_ratio * num_nodes)}.txt"
+            unlearn_idx_path = f"./data/unlearning_task/transductive/imbalanced/unlearning_nodes_{u_ratio}_{dataset}_{run_number}_nodes_{int(u_ratio * num_nodes)}.txt"
             if os.path.exists(unlearn_idx_path):
                 with open(unlearn_idx_path, "r") as f:
                     unlearned_indices = list(map(int, f.readlines()))

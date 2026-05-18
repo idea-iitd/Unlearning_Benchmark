@@ -16,7 +16,6 @@ from task import get_trainer
 from torch_geometric.transforms import SIGN
 from torch_geometric.utils import negative_sampling
 from sklearn.metrics import f1_score,roc_auc_score
-from attack.MIA_attack import train_attack_model,train_shadow_model,generate_shadow_model_output,evaluate_attack_model,GCNShadowModel,AttackModel
 from pipeline.Learning_based_pipeline import Learning_based_pipeline
 from task import BaseTrainer
 import os

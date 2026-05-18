@@ -16,10 +16,6 @@ from unlearning.unlearning_methods.ETR.etr import etr
 from utils.dataset_utils import process_data, save_data
 from attack.Attack_methods.GraphEraser_MIA import GraphEraser_Attack
 from attack.Attack_methods.GUIDE_MIA import GUIDE_MIA
-from attack.MIA_attack import GCNShadowModel
-from attack.MIA_attack import train_shadow_model
-from attack.MIA_attack import generate_shadow_model_output
-from attack.MIA_attack import train_attack_model
 
 method_map = {
     "GraphEraser": grapheraser,

@@ -39,14 +39,14 @@ from torch_geometric.utils import k_hop_subgraph
 from torch_sparse import SparseTensor
 
 import models
-from MIA_attack import MI_attack
-from Membership_Recall_Attack import MRattack
+from attack.MIA_attack import MI_attack
+from attack.Membership_Recall_Attack import MRattack
+from attack.Trend_attack import TrendAttack
 from model.base_gnn.deletion import GATDelete, GCNDelete, GINDelete
 from model.base_gnn.gat import GATNet
 from model.base_gnn.gcn import GCNNet
 from model.base_gnn.gin import GINNet
 from models import GCNNet3  # noqa: F401  (needed for checkpoint compatibility)
-from Trend_attack import TrendAttack
 from unlearning.unlearning_methods.Projector.utils.graph_projector_model_utils import (
     Pro_GNN,
 )

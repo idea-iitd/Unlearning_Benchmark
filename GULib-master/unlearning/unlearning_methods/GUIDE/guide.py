@@ -41,8 +41,9 @@ import argparse
 from unlearning.unlearning_methods.Projector.utils.graph_projector_model_utils import Pro_GNN
 import copy
 from torch_sparse import SparseTensor
-from Trend_attack import TrendAttack
-from Membership_Recall_Attack import MRattack
+from attack.MIA_attack import MI_attack
+from attack.Trend_attack import TrendAttack
+from attack.Membership_Recall_Attack import MRattack
 from sklearn.metrics import precision_score, recall_score
 from sklearn.model_selection import train_test_split
 import joblib  
@@ -517,6 +518,7 @@ class guide(Shard_based_pipeline):
                 if self.args["attack_type"] and self.args["unlearn_task"] == "node":
                     # train an attack model using the current run's unlearn list 
                     ATTACK_MAP = {
+                        "MIAattack": MI_attack,
                         "TrendAttack": TrendAttack, 
                         "MRattack": MRattack,
                     }

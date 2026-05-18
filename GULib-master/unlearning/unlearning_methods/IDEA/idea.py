@@ -8,7 +8,6 @@ from utils.dataset_utils import *
 import torch.nn.functional as F
 from config import BLUE_COLOR,RESET_COLOR
 from torch.autograd import grad
-# from attack.MIA_attack import train_attack_model,train_shadow_model,generate_shadow_model_output,evaluate_attack_model,GCNShadowModel,AttackModel
 from pipeline.IF_based_pipeline import IF_based_pipeline
 from sklearn.metrics import roc_auc_score
 from torch_geometric.loader import NeighborSampler

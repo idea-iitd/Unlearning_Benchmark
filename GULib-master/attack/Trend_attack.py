@@ -155,7 +155,7 @@ def TrendAttack(original_probs,
         try:
             if dataset is None or u_ratio is None:
                 raise ValueError("dataset and u_ratio required to auto-load unlearned indices when unlearned_indices is None.")
-            unlearn_idx_path = f"/data/unlearning_task/transductive/imbalanced/unlearning_nodes_{u_ratio}_{dataset}_{run_number}_nodes_{int(u_ratio * num_nodes)}.txt"
+            unlearn_idx_path = f"./data/unlearning_task/transductive/imbalanced/unlearning_nodes_{u_ratio}_{dataset}_{run_number}_nodes_{int(u_ratio * num_nodes)}.txt"
             with open(unlearn_idx_path, "r") as f:
                 unlearned_indices = list(map(int, f.readlines()))
             # if verbose:
