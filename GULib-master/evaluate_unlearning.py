@@ -39,7 +39,6 @@ from torch_geometric.nn.conv.gcn_conv import gcn_norm
 from torch_geometric.utils import k_hop_subgraph
 from torch_sparse import SparseTensor
 
-import models
 from attack.MIA_attack import MI_attack
 from attack.Membership_Recall_Attack import MRattack
 from attack.Trend_attack import TrendAttack
@@ -51,11 +50,6 @@ from unlearning.unlearning_methods.Projector.utils.graph_projector_model_utils i
     Pro_GNN,
 )
 
-# ---------------------------------------------------------------------------
-# Compatibility shim: checkpoints saved as "models.models.GCNNet3"
-# ---------------------------------------------------------------------------
-if "models.models" not in sys.modules:
-    sys.modules["models.models"] = models
 
 # ---------------------------------------------------------------------------
 # Constants

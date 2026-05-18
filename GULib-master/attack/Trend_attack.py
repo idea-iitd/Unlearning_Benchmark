@@ -19,8 +19,6 @@ from torch_sparse import SparseTensor
 from torch_geometric.loader import ShaDowKHopSampler
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
-from models import GCNNet3
-import models
 # add near top with other imports
 from sklearn.metrics import precision_score, recall_score
 from sklearn.model_selection import train_test_split
