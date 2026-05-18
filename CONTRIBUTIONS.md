@@ -55,13 +55,11 @@ Unlearning_Benchmark/
 │   │       │   └── gif.py
 │   │       └── …
 │   │
-│   ├── attack/
-│   │   ├── MIA_attack.py          # MI_attack() AUROC scorer — used at evaluation time
-│   │   ├── Trend_attack.py        # Inversion attack (TrendAttack)
-│   │   ├── Membership_Recall_Attack.py  # Noisy-labeler attack (MRattack)
-│   │   └── Attack_methods/        # Method-specific MIA variants (GraphEraser, GUIDE, …)
-│   │
-│   └── weight_comparison.py   # Parameter-space L2 distance (Table 6)
+│   └── attack/
+│       ├── MIA_attack.py          # MI_attack() AUROC scorer — used at evaluation time
+│       ├── Trend_attack.py        # Inversion attack (TrendAttack)
+│       ├── Membership_Recall_Attack.py  # Noisy-labeler attack (MRattack)
+│       └── Attack_methods/        # Method-specific MIA variants (GraphEraser, GUIDE, …)
 │
 ├── unlearn_model.sh               # Run training + unlearning
 ├── utility_stats.sh               # Run evaluation metrics
@@ -300,6 +298,20 @@ unlearned_models/{METHOD}/{dataset}/{unlearn_task}/ratio_{ratio:.2f}/
     {METHOD}_{dataset}_node_ratio_{ratio:.2f}_{run}{base_suffix}.pt
 ```
 
+**Weight-space comparison:** if your method saves standard model checkpoints (i.e. a
+`state_dict` or a `{"model_state": ...}` dict) and comparing its weights against GOLD
+is meaningful, add it to `WEIGHT_COMPARISON_METHODS` near the top of
+`evaluate_unlearning.py`:
+
+```python
+WEIGHT_COMPARISON_METHODS = {"MEGU", "GIF", "IDEA", "COGNAC", "ETR", "YourMethod"}
+```
+
+If your method saves a raw parameter list (like GIF/IDEA do), make sure
+`load_flat_params()` already handles your format — add a branch there if not.
+Weight comparison results are then reported automatically at evaluation time; no other
+changes are needed.
+
 ---
 
 ### Step 6 — Update the README methods table
@@ -447,7 +459,8 @@ Before opening a PR, confirm **all** of the following:
       --unlearning_methods YourMethod \
       --unlearn_ratio 0.1 --num_runs 1 --cal_mem False
   ```
-- [ ] Evaluation runs and prints accuracy, fidelity, logit distance and attack score:
+- [ ] Evaluation runs and prints accuracy, fidelity, logit distance, weight-space distance
+  (if your method is in `WEIGHT_COMPARISON_METHODS`), and attack score:
   ```bash
   python GULib-master/evaluate_unlearning.py \
       --dataset_name cora --base_model GCN \

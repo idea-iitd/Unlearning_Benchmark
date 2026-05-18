@@ -64,6 +64,9 @@ UNLEARNED_MODEL_DIR = DATA_ROOT / "unlearned_models"
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Methods for which weight-space comparison against GOLD is supported.
+WEIGHT_COMPARISON_METHODS = {"MEGU", "GIF", "IDEA", "COGNAC", "ETR"}
+
 ATTACK_MAP = {
     "MIattack": MI_attack,
     "TrendAttack": TrendAttack,
@@ -482,6 +485,38 @@ def mean_std(values: List[float]) -> str:
     return f"{np.mean(values):.4f} ± {np.std(values):.4f}"
 
 
+# ---------------------------------------------------------------------------
+# Weight-comparison helpers  (MEGU / GIF / IDEA / COGNAC / ETR only)
+# ---------------------------------------------------------------------------
+
+def load_flat_params(model_path: Path, model_type: str) -> torch.Tensor:
+    """Load all model parameters as a single flat CPU tensor."""
+    if model_type in ("GIF", "IDEA"):
+        # These methods save a plain list of parameter tensors.
+        params = torch.load(model_path, map_location="cpu")
+        return torch.cat([p.flatten() for p in params])
+    else:
+        ckpt = torch.load(model_path, map_location="cpu")
+        state_dict = (
+            ckpt["model_state"]
+            if isinstance(ckpt, dict) and "model_state" in ckpt
+            else ckpt
+        )
+        return torch.cat([p.flatten() for p in state_dict.values()])
+
+
+def wc_l2(p1: torch.Tensor, p2: torch.Tensor) -> float:
+    return torch.norm(p1 - p2).item()
+
+
+def wc_cosine(p1: torch.Tensor, p2: torch.Tensor) -> float:
+    return F.cosine_similarity(p1.unsqueeze(0), p2.unsqueeze(0)).item()
+
+
+def wc_rel_l2(p1: torch.Tensor, p2: torch.Tensor) -> float:
+    return (torch.norm(p1 - p2) / torch.norm(p1)).item()
+
+
 def pairwise_metrics(
     logits_a: torch.Tensor,
     logits_b: torch.Tensor,
@@ -516,6 +551,7 @@ def print_results(
     pairwise: Dict[str, Dict[str, Dict[str, List[float]]]],
     attack_auc_runs: List[float],
     attack_type: Optional[str],
+    wc_runs: Optional[Dict[str, Dict[str, List[float]]]] = None,
 ) -> None:
     separator = "=" * 60
 
@@ -542,6 +578,16 @@ def print_results(
         print(f"  {pair}:")
         for region, vals in regions.items():
             print(f"    {region}: {mean_std(vals)}")
+
+    if wc_runs:
+        print(f"\n{separator}")
+        print(f"Weight Comparison — GOLD vs {method_name} (mean +/- std)")
+        print(separator)
+        for pair, metrics in wc_runs.items():
+            print(f"  {pair}:")
+            for metric_name, values in metrics.items():
+                if values:
+                    print(f"    {metric_name:8s}: {mean_std(values)}")
 
     if attack_type and attack_auc_runs:
         print(f"\n{separator}")
@@ -603,6 +649,13 @@ def main() -> None:
         "exact": {}, "l2": {}
     }
 
+    # Weight-comparison accumulator (only populated for supported methods)
+    wc_runs: Dict[str, Dict[str, List[float]]] = (
+        {"GOLD_vs_Unlearn": {"L2": [], "Cosine": [], "Rel-L2": []}}
+        if method in WEIGHT_COMPARISON_METHODS
+        else {}
+    )
+
     # ------------------------------------------------------------------
     # Evaluation loop
     # ------------------------------------------------------------------
@@ -634,6 +687,17 @@ def main() -> None:
         preds_gold = logits_gold.argmax(dim=1).cpu().numpy()
         preds_unlearn = logits_unlearn.argmax(dim=1).cpu().numpy()
         probs_unlearn = F.softmax(logits_unlearn, dim=-1)
+
+        # ---- Weight comparison (supported methods only) ---------------
+        if wc_runs:
+            try:
+                flat_gold = load_flat_params(gold_path, "GOLD")
+                flat_unlearn = load_flat_params(unlearn_path, method)
+                wc_runs["GOLD_vs_Unlearn"]["L2"].append(wc_l2(flat_gold, flat_unlearn))
+                wc_runs["GOLD_vs_Unlearn"]["Cosine"].append(wc_cosine(flat_gold, flat_unlearn))
+                wc_runs["GOLD_vs_Unlearn"]["Rel-L2"].append(wc_rel_l2(flat_gold, flat_unlearn))
+            except Exception as exc:
+                print(f"  [Weight comparison skipped for run {run}: {exc}]")
 
         # ---- Accuracy & F1 -------------------------------------------
         for label, preds in [
@@ -688,7 +752,7 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Report
     # ------------------------------------------------------------------
-    print_results(method, acc_runs, f1_runs, pairwise, attack_auc_runs, args.attack_type)
+    print_results(method, acc_runs, f1_runs, pairwise, attack_auc_runs, args.attack_type, wc_runs)
 
 
 if __name__ == "__main__":

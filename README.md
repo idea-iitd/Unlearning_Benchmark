@@ -194,15 +194,8 @@ This computes:
 - **Accuracy**
 - **Fidelity** (per-node prediction agreement with GOLD)
 - **Logit L2 distance** (output distribution similarity to GOLD)
-
-### Weight-Space Distance (Table 6)
-
-```bash
-python GULib-master/evaluation/weight_comparison.py \
-    --unlearn_ratio 0.1 \
-    --num_runs 5 \
-    --datasets cora citeseer Photo Amazon-ratings Roman-empire ogbn-arxiv
-```
+- **Weight-space distance** — L2, Cosine, and Relative-L2 between the unlearned and GOLD model parameters.  
+  Reported automatically for methods that can support it: **MEGU, GIF, IDEA, COGNAC, ETR**.  
 
 ---
 
@@ -294,11 +287,10 @@ python GULib-master/evaluate_unlearning.py \
 Unlearning_Benchmark/
 ├── GULib-master/
 │   ├── config.py                      # Derived file paths
-│   ├── evaluate_unlearning.py         # Compute all metrics
+│   ├── evaluate_unlearning.py         # Compute all metrics (utility and forgetting)
 │   ├── main.py                        # Train + unlearn
 │   ├── parameter_parser.py            # All CLI arguments and defaults
 │   ├── unlearning_manager.py          # method-name → class dispatch
-│   ├── Weight_comparison.py           # Parameter-space L2 distance (Table 6)
 │   ├── unlearning/unlearning_methods/ # One subfolder per method
 │   │   ├── MEGU/megu.py
 │   │   ├── GIF/gif.py
