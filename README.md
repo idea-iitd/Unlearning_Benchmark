@@ -1,5 +1,7 @@
-# IS GRAPH UNLEARNING READY FOR PRACTICE?  
+# IS GRAPH UNLEARNING READY FOR PRACTICE?
 ### A Benchmark on Efficiency, Utility, and Forgetting
+
+**ICLR 2026** · [Paper](https://openreview.net/forum?id=gSPkuTTWgU) · [GitHub](https://github.com/idea-iitd/Unlearning_Benchmark)
 
 This repository contains the **official implementation** of the paper:  
 **"Is Graph Unlearning Ready for Practice? A Benchmark on Efficiency, Utility, and Forgetting"**
@@ -11,23 +13,30 @@ We introduce a unified benchmark framework to evaluate multiple **graph unlearni
 ## Overview
 
 This benchmark provides:
-- A **standardized evaluation** of graph unlearning methods.  
-- Comparisons on **time, memory, accuracy, and forgetting behavior**.  
+- A **standardized evaluation** of graph unlearning methods.
+- Comparisons on **time, memory, accuracy, and forgetting behavior**.
 - Support for multiple **datasets** and **GNN architectures**.
+- Evaluation across three core pillars:
+
+| Pillar | What we measure |
+|--------|----------------|
+| **Efficiency** | Runtime and peak GPU memory vs. retraining from scratch |
+| **Utility** | Accuracy, per-node fidelity, logit-space L2 distance, weight-space distance |
+| **Forgetting** | MIA AUROC, unlearning inversion attack, noisy-labeler attack |
 
 ---
 
 ## Installation
 
 ### Prerequisites
-- **Python:** 3.8.0  
+- **Python:** 3.8.0
 - **CUDA:** Ensure the CUDA version is compatible with your PyTorch installation.
 
 ---
 
 ### 1️⃣ Clone the Repository
 ```bash
-git clone <REPO-URL>
+git clone https://github.com/idea-iitd/Unlearning_Benchmark.git
 cd Unlearning_Benchmark
 ```
 
@@ -50,12 +59,12 @@ pip install torch==2.2.1 torchvision==0.17.1 torchaudio --index-url https://down
 ```
 
 Required Versions:
-- `torch==2.2.1`  
+- `torch==2.2.1`
 - `torchvision==0.17.1`
 
 ---
 
-#### (b) CuPy with CUDA Support
+#### (b) CuPy with CUDA Support (required by ScaleGUN only)
 
 Example for **CUDA 12.x**:
 ```bash
@@ -75,13 +84,13 @@ pip install -r requirements.txt
 
 #### (d) Graph Library Dependencies
 
-If you encounter build errors, install the precompiled wheels from the  
+If you encounter build errors, install the precompiled wheels from the
 [PyTorch Geometric Installation Guide](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html).
 
 Example for **CUDA 12.1**:
 ```bash
 pip install torch-scatter -f https://data.pyg.org/whl/torch-2.2.1+cu121.html
-pip install torch-sparse -f https://data.pyg.org/whl/torch-2.2.1+cu121.html
+pip install torch-sparse  -f https://data.pyg.org/whl/torch-2.2.1+cu121.html
 pip install torch-geometric
 ```
 
@@ -91,51 +100,68 @@ For other CUDA versions, replace `cu121` with your version (e.g., `cu118`).
 
 ## Running Benchmarks
 
-### Unlearning a Model
+> **Important:** Always run `GOLD` first for a given dataset + ratio combination.  
+> GOLD creates the train/test split, unlearning index files, and the retrained reference  
+> model that all evaluation compares against.
 
-To unlearn a model, run the unlearn_model.sh file or use the following command:
+### Gold Standard (Retrain from Scratch)
 
 ```bash
-python GULib-master/main.py   --dataset_name cora   --base_model GCN   --unlearning_methods MEGU   --attack False   --num_epochs 100   --batch_size 64   --unlearn_ratio 0.1   --num_runs 1   --cal_mem True
+python GULib-master/main.py \
+    --dataset_name cora \
+    --base_model GCN \
+    --unlearning_methods GOLD \
+    --num_epochs 100 \
+    --batch_size 64 \
+    --unlearn_ratio 0.1 \
+    --num_runs 1 \
+    --cal_mem True
+```
+
+### Unlearning a Model
+
+To unlearn a model, run `unlearn_model.sh` or use the following command:
+
+```bash
+python GULib-master/main.py \
+    --dataset_name cora \
+    --base_model GCN \
+    --unlearning_methods MEGU \
+    --attack False \
+    --num_epochs 100 \
+    --batch_size 64 \
+    --unlearn_ratio 0.1 \
+    --num_runs 1 \
+    --cal_mem True
 ```
 
 This command will **train**, **unlearn**, and **save** the unlearned model.
 
 ---
 
-### Gold Standard (Retrain from Scratch)
-
-To obtain stats for the **gold standard** baseline i.e., retraining the model from scratch on the remaining data after forgetting, run with `--unlearning_methods GOLD`:
-
-```bash
-python GULib-master/main.py   --dataset_name cora   --base_model GCN   --unlearning_methods GOLD   --num_epochs 100   --batch_size 64   --unlearn_ratio 0.1   --num_runs 1   --cal_mem True
-```
-
-> Note that you have to **Run GOLD model first** before computing any evaluation stats, so that the retrained from scratch model is available for comparison.
----
-
-### Optional Arguments
+## Optional Arguments
 
 | Argument | Description | Example |
-|-----------|--------------|----------|
+|----------|-------------|---------|
 | `--cuda <device>` | Specify GPU device to use | `--cuda 0` |
 | `--dataset_name <name>` | Graph dataset name | `--dataset_name cora` |
 | `--base_model <model>` | Base GNN model architecture | `GCN`, `GAT`, `GIN` |
-| `--unlearning_methods <method>` | Unlearning method | `MEGU`, `GIF`, `GraphEraser`, `GUIDE`, `GNNDelete`, `IDEA`, `Projector`, `ScaleGun`, `CGU`, `GOLD` |
+| `--unlearning_methods <method>` | Unlearning method | `MEGU`, `GIF`, `GraphEraser`, `GUIDE`, `GNNDelete`, `IDEA`, `Projector`, `ScaleGUN`, `CGU`, `COGNAC`, `ETR`, `GOLD` |
 | `--unlearn_ratio <value>` | Fraction of data to unlearn | `0.1` |
+| `--num_unlearned_nodes <N>` | Absolute count of nodes to unlearn | `271` |
+| `--unlearn_task <task>` | Unlearning granularity | `node`, `edge`, `feature` |
 | `--num_epochs <N>` | Number of training epochs | `100` |
 | `--batch_size <N>` | Batch size | `64` |
-| `--attack <True/False>` | Enable membership inference attack | `True` |
+| `--num_runs <N>` | Independent runs to average over | `5` |
+| `--attack <True/False>` | Enable MIA during unlearning | `False` |
+| `--attack_type <name>` | Forgetting attack for evaluation | `MIattack`, `TrendAttack`, `MRattack` |
 | `--cal_mem <True/False>` | Record time and memory stats | `True` |
 
 ---
 
 ## Efficiency Evaluation
 
-To record **efficiency metrics** breakdowns (time and memory usage) give this argument in main.py:
-```bash
---cal_mem True
-```
+To record **efficiency metrics** (time and memory usage), pass `--cal_mem True` to `main.py`.
 
 Results are stored in:
 ```
@@ -146,63 +172,153 @@ efficiency_stats.txt
 
 ## Utility Evaluation
 
-For Getting the Utility Stats, run:
+### Accuracy, Fidelity, Logit Similarity
+
+Run `utility_stats.sh` or call `evaluate_unlearning.py` directly:
+
 ```bash
 bash utility_stats.sh
 ```
 
+```bash
+python GULib-master/evaluate_unlearning.py \
+    --dataset_name cora \
+    --base_model GCN \
+    --unlearning_methods MEGU \
+    --unlearn_ratio 0.1 \
+    --unlearn_task node \
+    --num_runs 1
+```
+
 This computes:
 - **Accuracy**
-- **Fidelity**
-- **Logit Similarity**
+- **Fidelity** (per-node prediction agreement with GOLD)
+- **Logit L2 distance** (output distribution similarity to GOLD)
 
-For Getting Weight Comparsion Results, run:
+### Weight-Space Distance (Table 6)
+
 ```bash
-python GULib-master/Weight_comparison.py
+python GULib-master/evaluation/weight_comparison.py \
+    --unlearn_ratio 0.1 \
+    --num_runs 5 \
+    --datasets cora citeseer Photo Amazon-ratings Roman-empire ogbn-arxiv
 ```
+
+---
 
 ## Forgetting Evaluation
 
-To evaluate **forgetting performance** using given attack use attack_type argument in evaluate_unlearning.py:
-```bash
---attack_type Attack_Name 
-```
-Where Attack_Name could be from MIattack, TrendAttack, MRattack. 
+To evaluate forgetting performance, pass `--attack_type` to `evaluate_unlearning.py`:
 
-Note:
-- Utility results for **GraphEraser** and **GUIDE** are automatically stored during unlearning:
-  - `GraphEraser_utility_stats.txt`
-  - `GUIDE_utility_stats.txt`
-- For getting forgetting results for them, give attack_type argument in main.py
+```bash
+python GULib-master/evaluate_unlearning.py \
+    --dataset_name cora \
+    --unlearning_methods MEGU \
+    --unlearn_ratio 0.1 \
+    --attack_type MIattack
+```
+
+Where `--attack_type` can be:
+
+| Attack | What it tests |
+|--------|--------------|
+| `MIattack` | Membership Inference — can an adversary tell if a node was in training? |
+| `TrendAttack` | Inversion attack — can deleted edges be reconstructed from logits? |
+| `MRattack` | Noisy-labeler — does the model assign high-confidence original labels to deleted nodes? |
+
+An AUROC close to **0.5** indicates strong forgetting. Values above 0.5 indicate residual leakage.
+
+> **Note:** Utility results for **GraphEraser** and **GUIDE** are automatically stored during unlearning time
+> in `GraphEraser_utility_stats.txt` and `GUIDE_utility_stats.txt` files. And for getting forgetting results for them 
+> pass the `--attack_type` argument to `main.py` instead.
 
 ---
 
 ## Datasets
 
-Supported graph datasets:
-- **Cora**
-- **Citeseer**
-- **ogbn-arxiv**
-- **Amazon-ratings**
-- **Roman-empire**
-- **Reddit**
+| Dataset | Nodes | Edges | Type |
+|---------|-------|-------|------|
+| Cora | 2,708 | 5,278 | Homophily |
+| Citeseer | 3,327 | 4,732 | Homophily |
+| Photo | 7,487 | 119,043 | Homophily |
+| ogbn-arxiv | 169,343 | 1,166,243 | Homophily |
+| Amazon-ratings | 24,492 | 93,050 | Heterophily |
+| Roman-empire | 22,662 | 32,927 | Heterophily |
+| Reddit | 232,965 | 114,615,892 | Homophily (scalability) |
 
 ---
 
 ## Supported Unlearning Methods
 
-Our benchmark currently supports:
-- **MEGU**
-- **GIF**
-- **IDEA**
-- **GraphEraser**
-- **GUIDE**
-- **GNNDelete**
-- **Projector**
-- **ScaleGun**
-- **CGU**
-- **Cognac**
-- **ETR**
+| Method | Paradigm | Model-agnostic | Cont. Training | Train. Mode | Guarantee |
+|--------|----------|:--------------:|:--------------:|:-----------:|:---------:|
+| MEGU | Learning-based | ✓ | ✓ | Post-hoc | — |
+| GIF | Influence function | ✓ | — | Post-hoc | — |
+| IDEA | IF + certified | ✓ | — | Post-hoc | — |
+| GST | Influence function | ✓ | ✓ | Post-hoc | — |
+| ETR | IF + Learning | ✓ | ✓ | Post-hoc | — |
+| COGNAC | Corrective | ✓ | ✓ | Post-hoc | — |
+| GNNDelete | Learning-based | ✓ | — | Post-hoc | — |
+| GraphEraser | SISA / Partition | ✓ | ✓ | Train-time | ✓ |
+| GUIDE | SISA / Partition | ✓ | ✓ | Train-time | ✓ |
+| Projector | Projection | — | — | Train-time | ✓ |
+| ScaleGUN | Certified (linear GNN, binary) | — | ✓ | Train-time | ✓ |
+| CGU | Certified (linear GNN, binary) | — | ✓ | Train-time | ✓ |
+
+---
+
+## Project Structure
+
+```
+Unlearning_Benchmark/
+├── GULib-master/
+│   ├── config.py                      # Derived file paths
+│   ├── evaluate_unlearning.py         # Compute all metrics
+│   ├── main.py                        # Train + unlearn
+│   ├── parameter_parser.py            # All CLI arguments and defaults
+│   ├── unlearning_manager.py          # method-name → class dispatch
+│   ├── Weight_comparison.py           # Parameter-space L2 distance (Table 6)
+│   ├── unlearning/unlearning_methods/ # One subfolder per method
+│   │   ├── MEGU/megu.py
+│   │   ├── GIF/gif.py
+│   │   └── …
+│   ├── pipeline/                      # Base pipeline classes
+│   │   ├── Learning_based_pipeline.py
+│   │   ├── IF_based_pipeline.py
+│   │   └── Shard_based_pipeline.py
+│   ├── task/                          # Trainer classes
+│   ├── attack/
+│   │   ├── MIA_attack.py              # MIA AUROC scorer (evaluation)
+│   │   ├── shadow_model.py            # Shadow/attack model classes (training)
+│   │   ├── Trend_attack.py
+│   │   └── Membership_Recall_Attack.py
+│   ├── dataset/                       # Dataset loaders and splits
+│   ├── model/                         # GNN architectures and model zoo
+│   └── utils/                         # Logging and data utilities
+├── unlearn_model.sh                   # Run training + unlearning
+├── utility_stats.sh                   # Run evaluation metrics
+└── requirements.txt
+```
+
+---
+
+## Contributing
+
+See [CONTRIBUTIONS.md](CONTRIBUTIONS.md) for step-by-step instructions on adding new unlearning methods, datasets, and attack families.
+
+---
+
+## Citation
+
+```bibtex
+@inproceedings{jain2026is,
+  title     = {Is Graph Unlearning Ready for Practice? A Benchmark on Efficiency, Utility, and Forgetting},
+  author    = {Samyak Jain and Ronak Kalvani and Sainyam Galhotra and Sayan Ranu},
+  booktitle = {The Fourteenth International Conference on Learning Representations},
+  year      = {2026},
+  url       = {https://openreview.net/forum?id=gSPkuTTWgU}
+}
+```
 
 ---
 
