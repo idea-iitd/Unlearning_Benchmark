@@ -21,11 +21,12 @@ Below is everything you need to add new unlearning methods, datasets, or attacks
 ```
 Unlearning_Benchmark/
 ├── GULib-master/
-│   ├── main.py                    # Entry point: train → unlearn → log
-│   ├── evaluate_unlearning.py     # Standalone utility/forgetting evaluator
-│   ├── unlearning_manager.py      # method_map: name → class  ← edit when adding a method
-│   ├── parameter_parser.py        # All CLI arguments          ← edit when adding a method
 │   ├── config.py                  # Path constants (root_path, unlearning_path, …)
+│   ├── evaluate_unlearning.py     # Standalone utility/forgetting evaluator
+│   ├── generate_workload_sets.py      # generates node sets for robustness analysis
+│   ├── main.py                    # Entry point: train → unlearn → log
+│   ├── parameter_parser.py        # All CLI arguments          ← edit when adding a method
+│   ├── unlearning_manager.py      # method_map: name → class  ← edit when adding a method
 │   │
 │   ├── dataset/
 │   │   └── original_dataset.py    # Dataset loaders            ← edit when adding a dataset

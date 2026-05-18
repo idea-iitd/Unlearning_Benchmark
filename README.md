@@ -288,6 +288,7 @@ Unlearning_Benchmark/
 ├── GULib-master/
 │   ├── config.py                      # Derived file paths
 │   ├── evaluate_unlearning.py         # Compute all metrics (utility and forgetting)
+│   ├── generate_workload_sets.py      # generates node sets for robustness analysis
 │   ├── main.py                        # Train + unlearn
 │   ├── parameter_parser.py            # All CLI arguments and defaults
 │   ├── unlearning_manager.py          # method-name → class dispatch
