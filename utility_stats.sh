@@ -21,7 +21,7 @@ for method in "${methods[@]}"; do
                     --unlearn_ratio "$ratio" \
                     --dataset_name "$dataset" \
                     --unlearning_methods "$method" \
-                    --num_runs 1 \
+                    --num_runs 10 \
                     --base_model "$base" 
                 echo -e "\n"
             done

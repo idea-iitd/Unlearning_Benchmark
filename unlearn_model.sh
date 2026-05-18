@@ -3,7 +3,7 @@
 # List of datasets
 datasets=("cora")
 
-# List of unlearning ratio
+# List of unlearning ratios
 ratios=(0.1)
 
 # List of unlearning methods
@@ -20,11 +20,10 @@ for method in "${methods[@]}"; do
           --dataset_name "$dataset" \
           --base_model "$base" \
           --unlearning_methods "$method" \
-          --attack True \
           --num_epochs 100 \
           --batch_size 64 \
           --unlearn_ratio "$ratio" \
-          --num_runs 1 \
+          --num_runs 10 \
           --cal_mem True 
       done
     done
