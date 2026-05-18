@@ -234,6 +234,27 @@ An AUROC close to **0.5** indicates strong forgetting. Values above 0.5 indicate
 
 ---
 
+## Robustness Analysis over different unlearning workload Distributions 
+
+By default all methods use randomly sampled training nodes. To evaluate on a structured deletion strategy, generate the node set first, then run unlearning and evaluation as normal:
+
+```bash
+# Step 1 — overwrite the initial random node set with your chosen strategy
+python GULib-master/generate_workload_sets.py \
+    --dataset_name cora --unlearn_ratio 0.1 \
+    --strategy high_freq   # or: second_freq | low_degree | high_degree | random
+
+# Step 2 — run unlearning (reads the node set as usual)
+python GULib-master/main.py \
+    --dataset_name cora --base_model GCN \
+    --unlearning_methods MEGU --unlearn_ratio 0.1
+
+# Step 3 — evaluate as usual
+python GULib-master/evaluate_unlearning.py \
+    --dataset_name cora --unlearning_methods MEGU \
+    --unlearn_ratio 0.1
+```
+
 ## Datasets
 
 | Dataset | Nodes | Edges | Type |

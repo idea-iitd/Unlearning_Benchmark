@@ -89,8 +89,9 @@ def parameter_parser():
     parser.add_argument('--downstream_task', type=str, default='node', choices=['node', "edge","graph"])
     parser.add_argument('--unlearn_task', type=str, default='node', choices=['feature', "node", "edge"])
 
-    #If running over copy unlearning data 
-    parser.add_argument('--use_copy', type=str2bool, default=False, help = "True if Using different unleared set")
+    #args for evaluating unlearning over different workload distributions
+    parser.add_argument("--strategy", type=str, default="random", choices=["random", "high_freq", "second_freq", "low_degree", "high_degree"])
+    parser.add_argument('--use_copy', type=str2bool, default=False, help = "True if want to experiment on different unleared set")
     
     #train#
     parser.add_argument('--num_epochs', type=int, default=1000)
