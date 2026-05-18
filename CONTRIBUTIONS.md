@@ -23,7 +23,7 @@ Unlearning_Benchmark/
 ├── GULib-master/
 │   ├── config.py                  # Path constants (root_path, unlearning_path, …)
 │   ├── evaluate_unlearning.py     # Standalone utility/forgetting evaluator
-│   ├── generate_workload_sets.py      # generates node sets for robustness analysis
+│   ├── generate_workload_sets.py  # generates node sets for robustness analysis
 │   ├── main.py                    # Entry point: train → unlearn → log
 │   ├── parameter_parser.py        # All CLI arguments          ← edit when adding a method
 │   ├── unlearning_manager.py      # method_map: name → class  ← edit when adding a method
