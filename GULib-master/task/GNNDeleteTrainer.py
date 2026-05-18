@@ -520,7 +520,7 @@ class GNNDeleteTrainer(BaseTrainer):
 
         unlearn_task = self.args['unlearn_task']
 
-        save_path = f"/unlearned_models/{unlearning_model_name}/{dataset}/{unlearn_task}/ratio_{unlearn_ratio:.2f}{copy_str}"
+        save_path = os.path.join(root_path, f"unlearned_models/{unlearning_model_name}/{dataset}/{unlearn_task}/ratio_{unlearn_ratio:.2f}{copy_str}")
         os.makedirs(save_path, exist_ok=True)
 
         save_file = f"{unlearning_model_name}_{dataset}_{self.args['downstream_task']}_ratio_{unlearn_ratio:.2f}{run_str}{base_model_str}.pt"

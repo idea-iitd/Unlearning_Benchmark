@@ -88,7 +88,7 @@ class guide(Shard_based_pipeline):
         u_ratio = self.args['unlearn_ratio']
         dataset = self.args['dataset_name']
         num_nodes = self.data.y.size(0)
-        unlearn_idx_path = f"/data/unlearning_task/transductive/imbalanced/unlearning_nodes_{u_ratio}_{dataset}_{self.run}_nodes_{int(u_ratio * num_nodes)}.txt"
+        unlearn_idx_path = os.path.join(root_path, f"data/unlearning_task/transductive/imbalanced/unlearning_nodes_{u_ratio}_{dataset}_{self.run}_nodes_{int(u_ratio * num_nodes)}.txt")
 
         with open(unlearn_idx_path, "r") as f:
             unlearned_indices = list(map(int, f.readlines()))
@@ -382,9 +382,9 @@ class guide(Shard_based_pipeline):
                 #--------------------------------------------------
                 dataset = self.args['dataset_name']
                 unlearn_ratio_str = f"ratio_{self.args['unlearn_ratio']:.2f}"
-                gold_model_path = f"/unlearned_models/GOLD/{dataset}/{self.args['unlearn_task']}/{unlearn_ratio_str}/GOLD_{dataset}_node_{unlearn_ratio_str}_{self.run}.pt"
-                data_path = f"/data/processed/transductive/{dataset}0.8_0_0.2.pkl"
-                original_model_path = f"/data/model/node_level/{dataset}/{self.args['unlearn_task']}/{self.args['base_model']}"
+                gold_model_path = os.path.join(root_path, f"unlearned_models/GOLD/{dataset}/{self.args['unlearn_task']}/{unlearn_ratio_str}/GOLD_{dataset}_node_{unlearn_ratio_str}_{self.run}.pt")
+                data_path = os.path.join(root_path, f"data/processed/transductive/{dataset}0.8_0_0.2.pkl")
+                original_model_path = os.path.join(root_path, f"data/model/node_level/{dataset}/{self.args['unlearn_task']}/{self.args['base_model']}")
                 
                 append_to_file(filename, f"-----------------    {dataset} --------------- GUIDE --------------------- {self.args['unlearn_ratio']:.2f} ------------- {self.args['unlearn_task']}")
 

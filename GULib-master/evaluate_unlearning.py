@@ -24,6 +24,7 @@ python evaluate_unlearning.py \
 import argparse
 import copy
 import pickle
+import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -46,7 +47,6 @@ from model.base_gnn.deletion import GATDelete, GCNDelete, GINDelete
 from model.base_gnn.gat import GATNet
 from model.base_gnn.gcn import GCNNet
 from model.base_gnn.gin import GINNet
-from models import GCNNet3  # noqa: F401  (needed for checkpoint compatibility)
 from unlearning.unlearning_methods.Projector.utils.graph_projector_model_utils import (
     Pro_GNN,
 )
@@ -60,7 +60,7 @@ if "models.models" not in sys.modules:
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-DATA_ROOT = Path()  #Add your root path for Unlearning_Benchmark folder
+DATA_ROOT = Path()  #Add your root path for Unlearning_Benchmark folder if it is not the current working directory
 PROCESSED_DATA_DIR = DATA_ROOT / "data/processed/transductive"
 UNLEARN_TASK_DIR = DATA_ROOT / "data/unlearning_task/transductive/imbalanced"
 MODEL_DIR = DATA_ROOT / "data/model/node_level"
@@ -156,16 +156,6 @@ def build_paths(args: argparse.Namespace) -> Dict[str, Path]:
         / f"GOLD_{dataset}_node_{unlearn_ratio_tag}{base_suffix}.pt"
     )
 
-    # if method == "ETR":
-    #     unlearn_model_path = (
-    #         ETR_DIR / f"{dataset}/unlearned_model_GCNNet3_{dataset}_seed0.pt"
-    #     )
-    # else:
-    #     unlearn_model_path = (
-    #         UNLEARNED_MODEL_DIR
-    #         / f"{method}/{dataset}/{unlearn_task}/{unlearn_ratio_tag}"
-    #         / f"{method}_{dataset}_node_{unlearn_ratio_tag}{base_suffix}.pt"
-    #     )
     unlearn_model_path = (
         UNLEARNED_MODEL_DIR
         / f"{method}/{dataset}/{unlearn_task}/{unlearn_ratio_tag}"

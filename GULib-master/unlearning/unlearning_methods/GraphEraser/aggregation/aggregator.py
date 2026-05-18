@@ -36,18 +36,11 @@ from attack.Membership_Recall_Attack import MRattack
 from sklearn.metrics import precision_score, recall_score
 from sklearn.model_selection import train_test_split
 import joblib  
-
-# --- place near top of file with other imports ---
+from config import root_path
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, accuracy_score
 from collections import defaultdict
-
-# Add the GULib-master/ root to sys.path
-# sys.path.append(os.path.abspath(os.path.join(__file__, "../../../..")))
-# from jaccard_script import load_and_predict
-
-
 
 
 def load_and_predict(model_path, model_type="GOLD", unlearned_param_path=None, data=None,args=None):
@@ -188,8 +181,8 @@ class Aggregator:
         dataset = self.args['dataset_name']
         num_nodes = self.data.y.size(0)
 
-        unlearn_idx_path = f"/data/unlearning_task/transductive/imbalanced/unlearning_nodes_{u_ratio}_{dataset}_0_nodes_{int(u_ratio * num_nodes)}.txt"
-
+        unlearn_idx_path = os.path.join(root_path, f"data/unlearning_task/transductive/imbalanced/unlearning_nodes_{u_ratio}_{dataset}_0_nodes_{int(u_ratio * num_nodes)}.txt")
+        
         with open(unlearn_idx_path, "r") as f:
             unlearned_indices = list(map(int, f.readlines()))
 
@@ -338,9 +331,9 @@ class Aggregator:
             base_model_str=""
             if self.args["base_model"]!="GCN":
                 base_model_str = "_" + self.args["base_model"]
-            original_model_path = f"/data/model/node_level/{dataset}/{unlearn_task}/{self.args['base_model']}"
-            gold_model_path = f"/unlearned_models/GOLD/{dataset}/{unlearn_task}/{unlearn_ratio}/GOLD_{dataset}_node_{unlearn_ratio}{run_str}{base_model_str}.pt"
-            data_path = f"/data/processed/transductive/{dataset}0.8_0_0.2.pkl"
+            original_model_path = os.path.join(root_path, f"data/model/node_level/{dataset}/{unlearn_task}/{self.args['base_model']}")
+            gold_model_path = os.path.join(root_path, f"unlearned_models/GOLD/{dataset}/{unlearn_task}/{unlearn_ratio}/GOLD_{dataset}_node_{unlearn_ratio}{run_str}{base_model_str}.pt")
+            data_path = os.path.join(root_path, f"data/processed/transductive/{dataset}0.8_0_0.2.pkl")
 
             with open(data_path, "rb") as f:
                 data = pickle.load(f)
