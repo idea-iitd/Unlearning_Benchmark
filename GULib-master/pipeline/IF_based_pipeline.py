@@ -200,7 +200,7 @@ class IF_based_pipeline:
             # elif self.args["unlearn_task"]=="edge":
             #     self.mia_attack_edge()
                 
-        with open("/MIA_stats.txt", "a") as f:
+        with open("./MIA_stats.txt", "a") as f:
             f.write(
                 "{} Average MIA {} Score: {:.4f} ± {:.4f}\n".format(
                     self.args["dataset_name"],

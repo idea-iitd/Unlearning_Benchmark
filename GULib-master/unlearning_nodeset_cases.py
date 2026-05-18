@@ -108,8 +108,8 @@ unlearn_top2 = np.random.choice(top2_nodes, num_top2_unlearn, replace=False)
 # -------------------------------
 
 # First path (save selected nodes)
-save_path_top1 = f"/data/unlearning_task/transductive/imbalanced/unlearning_nodes_{ratio_str}_{dataset_str}_0_nodes_{node_count}.txt"
-save_path_top2 = f"/data/unlearning_task/transductive/imbalanced/unlearning_nodes_copy_{ratio_str}_{dataset_str}_0_nodes_{node_count}.txt"
+save_path_top1 = f"./data/unlearning_task/transductive/imbalanced/unlearning_nodes_{ratio_str}_{dataset_str}_0_nodes_{node_count}.txt"
+save_path_top2 = f"./data/unlearning_task/transductive/imbalanced/unlearning_nodes_copy_{ratio_str}_{dataset_str}_0_nodes_{node_count}.txt"
 
 os.makedirs(os.path.dirname(save_path_top1), exist_ok=True)
 

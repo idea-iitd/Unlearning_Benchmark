@@ -463,7 +463,7 @@ class projector():
             # self.logger.info("average_auc:{}".format(self.average_auc[self.run]) )
 
                 # ---- Store AUC and GOLD AUC results in file ----
-        with open("/MIA_stats.txt", "a") as f:
+        with open("./MIA_stats.txt", "a") as f:
             f.write(
                 "{} Average MIA {} Score: {:.4f} ± {:.4f}\n".format(
                     self.args["dataset_name"],
